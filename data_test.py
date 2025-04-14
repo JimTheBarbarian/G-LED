@@ -4,23 +4,13 @@ import os
 # Define the filename
 filename = 'data0.npy'
 
-# Check if the file exists
-if not os.path.exists(filename):
-    print(f"Error: File '{filename}' not found.")
-    # As a fallback, create a dummy file for demonstration
-    print(f"Creating a dummy file '{filename}' for demonstration.")
-    dummy_data = np.array([[1, 2, 3], [4, 5, 6]])
-    np.save(filename, dummy_data)
-    print(f"Dummy data saved: \n{dummy_data}")
-    print("-" * 20)
-
 
 # Load the data from the .npy file
 try:
     data = np.load(filename, allow_pickle=True) # allow_pickle=True if it might contain objects
     print(f"Successfully loaded '{filename}'")
-    print("\nContents:")
-    print(data)
+    #print("\nContents:")
+    #print(data)
 
     # Check if the loaded data is a NumPy array and print its shape
     if isinstance(data, np.ndarray):
