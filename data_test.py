@@ -2,7 +2,7 @@ import numpy as np
 import os
 
 # Define the filename
-filename = 'data0.npy'
+filename = 'data1.npy'
 
 
 # Load the data from the .npy file
