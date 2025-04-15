@@ -71,7 +71,7 @@ class Args:
                                  default = 40,
                                  help='number steps transformer can look back at')
         self.parser.add_argument("--n_embd", 
-                                 default = 2048,
+                                 default = 16,
                                  help='The hidden state dim transformer to predict') 
         self.parser.add_argument("--n_head", 
                                  default = 4,
@@ -127,7 +127,7 @@ class Args:
                                  help='learning rate decay')
         
         self.parser.add_argument("--coarse_dim",
-                                 default=[32,32],
+                                 default=16,
                                  help='the coarse shape (hidden) of transformer')
         self.parser.add_argument('--coarse_mode',
                                  default='bilinear',

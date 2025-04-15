@@ -49,7 +49,7 @@ class Args_seq_sample:
 		for testing
 		"""
 		self.parser.add_argument("--test_Nt",
-								 default=40,
+								 default=512,
 								 help='The length of forward propgatate')
 		self.parser.add_argument("--batch_size",
 								 default=1,

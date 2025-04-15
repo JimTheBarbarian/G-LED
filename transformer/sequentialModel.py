@@ -422,6 +422,54 @@ class SeqModelWithMLP(nn.Module):
 		return count
 
 
+
+
+from dataclasses import dataclass
+
+@dataclass
+class ModelConfig:
+    n_ctx: int = 512          # Context length
+    n_layer: int = 8          # Number of attention layers
+    n_head: int = 4           # Number of attention heads
+    n_embd: int = 16         # Embedding dimension
+    layer_norm_epsilon: float = 1e-5
+    embd_pdrop: float = 0.1   # Dropout probability
+    output_hidden_states: bool = False
+    output_attentions: bool = False
+
+def test_sequential_model():
+    # Initialize config
+    config = ModelConfig()
+    
+    # Initialize model
+    model = SequentialModel(config)
+    
+    # Create dummy batch: [batch_size, sequence_length, embedding_dim]
+	batch_size=2
+   	seq_length = 10
+    inputs_embeds = torch.randn(batch_size, seq_length, config.n_embd)
+    
+    # Create attention mask (1 for tokens to attend to, 0 for tokens to ignore)
+    attention_mask = torch.ones(batch_size, seq_length)
+    
+    # Forward pass
+    outputs = model(
+        inputs_embeds=inputs_embeds,
+        attention_mask=attention_mask,
+        use_cache=False
+    )
+    
+    # Get main output
+    last_hidden_state = outputs[0]
+    
+    # Check output shape
+    expected_shape = (batch_size, seq_length, config.n_embd)
+    assert last_hidden_state.shape == expected_shape, f"Expected shape {expected_shape}, got {last_hidden_state.shape}"
+    
+    print(f"Model test passed! Output shape: {last_hidden_state.shape}")
+    return last_hidden_state	
+
 if __name__ == '__main__':
 	print('I love you.')
+	output = test_sequential_model()
 	#x = torch.randn(batch_size, n_steps, config.n_embd) # Batch, time-steps, embed
