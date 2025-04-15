@@ -438,36 +438,36 @@ class ModelConfig:
     output_attentions: bool = False
 
 def test_sequential_model():
-    # Initialize config
-    config = ModelConfig()
+	# Initialize config
+	config = ModelConfig()
     
     # Initialize model
-    model = SequentialModel(config)
-    
-    # Create dummy batch: [batch_size, sequence_length, embedding_dim]
+	model = SequentialModel(config)
+	
+	# Create dummy batch: [batch_size, sequence_length, embedding_dim]
 	batch_size=2
-   	seq_length = 10
-    inputs_embeds = torch.randn(batch_size, seq_length, config.n_embd)
+	seq_length = 10
+	inputs_embeds = torch.randn(batch_size, seq_length, config.n_embd)
+	
+	# Create attention mask (1 for tokens to attend to, 0 for tokens to ignore)
+	attention_mask = torch.ones(batch_size, seq_length)
+	
+	# Forward pass
+	outputs = model(
+		inputs_embeds=inputs_embeds,
+		attention_mask=attention_mask,
+		use_cache=False
+	)
+	
+	# Get main output
+	last_hidden_state = outputs[0]
+	
+	# Check output shape
+	expected_shape = (batch_size, seq_length, config.n_embd)
+	assert last_hidden_state.shape == expected_shape, f"Expected shape {expected_shape}, got {last_hidden_state.shape}"
     
-    # Create attention mask (1 for tokens to attend to, 0 for tokens to ignore)
-    attention_mask = torch.ones(batch_size, seq_length)
-    
-    # Forward pass
-    outputs = model(
-        inputs_embeds=inputs_embeds,
-        attention_mask=attention_mask,
-        use_cache=False
-    )
-    
-    # Get main output
-    last_hidden_state = outputs[0]
-    
-    # Check output shape
-    expected_shape = (batch_size, seq_length, config.n_embd)
-    assert last_hidden_state.shape == expected_shape, f"Expected shape {expected_shape}, got {last_hidden_state.shape}"
-    
-    print(f"Model test passed! Output shape: {last_hidden_state.shape}")
-    return last_hidden_state	
+	print(f"Model test passed! Output shape: {last_hidden_state.shape}")
+	return last_hidden_state	
 
 if __name__ == '__main__':
 	print('I love you.')
