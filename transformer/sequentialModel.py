@@ -438,8 +438,9 @@ class ModelConfig:
     output_attentions: bool = False
 
 def test_sequential_model():
+	from main_seq_bsf import Args
 	# Initialize config
-	config = ModelConfig()
+	config = Args()
     
     # Initialize model
 	model = SequentialModel(config)
