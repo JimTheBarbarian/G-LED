@@ -448,7 +448,8 @@ def test_sequential_model():
 
 	from main_seq_bfs import Args
 	# Initialize config
-	config = Args()
+	args = Args()
+	config = args.update_args()
     
     # Initialize model
 	model = SequentialModel(config)

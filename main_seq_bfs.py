@@ -138,19 +138,19 @@ class Args:
         
     def update_args(self):
         args = self.parser.parse_args()
-        args.time = '{0:%Y_%m_%d_%H_%M_%S}'.format(datetime.now())
+        #args.time = '{0:%Y_%m_%d_%H_%M_%S}'.format(datetime.now())
         # output dataset
-        args.dir_output = 'output/'
-        args.fname = args.dataset + '_' +args.time
-        args.experiment_path = args.dir_output + args.fname
-        args.model_save_path = args.experiment_path + '/' + 'model_save/'
-        args.logging_path = args.experiment_path + '/' + 'logging/'
-        args.current_model_save_path = args.model_save_path
-        args.logging_epoch_path = args.logging_path + 'epoch_history.csv'
-        if not os.path.isdir(args.logging_path):
-            os.makedirs(args.logging_path)
-        if not os.path.isdir(args.model_save_path):
-            os.makedirs(args.model_save_path)
+        #args.dir_output = 'output/'
+        #args.fname = args.dataset + '_' +args.time
+        #args.experiment_path = args.dir_output + args.fname
+        #args.model_save_path = args.experiment_path + '/' + 'model_save/'
+        #args.logging_path = args.experiment_path + '/' + 'logging/'
+        #args.current_model_save_path = args.model_save_path
+        #args.logging_epoch_path = args.logging_path + 'epoch_history.csv'
+        #if not os.path.isdir(args.logging_path):
+        #    os.makedirs(args.logging_path)
+        #if not os.path.isdir(args.model_save_path):
+        #    os.makedirs(args.model_save_path)
         return args
 
 
