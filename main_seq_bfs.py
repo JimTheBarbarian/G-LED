@@ -71,7 +71,7 @@ class Args:
                                  default = 512,
                                  help='number steps transformer can look back at')
         self.parser.add_argument("--n_embd", 
-                                 default = 16,
+                                 default =16,
                                  help='The hidden state dim transformer to predict') 
         self.parser.add_argument("--n_head", 
                                  default = 4,
@@ -167,7 +167,6 @@ if __name__ == '__main__':
     """
     pre-check
     """
-    # TODO change this 
     assert args.coarse_dim == args.n_embd
     #assert args.trajec_max_len_valid == args.n_ctx + 1
     
