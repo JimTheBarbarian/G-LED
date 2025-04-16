@@ -438,6 +438,14 @@ class ModelConfig:
     output_attentions: bool = False
 
 def test_sequential_model():
+	import os
+	import sys
+	import inspect
+
+	currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+	parentdir = os.path.dirname(currentdir)
+	sys.path.insert(0, parentdir) 
+
 	from main_seq_bsf import Args
 	# Initialize config
 	config = Args()
