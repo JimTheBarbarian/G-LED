@@ -6,7 +6,7 @@ import os
 tensor_folder = '.' # Assuming tensors are in the current directory
 
 # Define the number of tensors
-num_tensors = 10000
+num_tensors = 5000
 
 # List to hold the loaded tensors
 tensor_list = []
@@ -18,8 +18,8 @@ for i in range(num_tensors):
     if os.path.exists(file_path):
         try:
             tensor = torch.load(file_path)
-            # Ensure the tensor is on CPU if it was saved on GPU
-            tensor_list.append(tensor.cpu())
+            stacked_traj_tensor = torch.stack([t.cpu() for t in tensor], dim=0)
+            tensor_list.append(stacked_traj_tensor) # Append the [3841, 64] tensor
         except Exception as e:
             print(f"Error loading {file_path}: {e}")
             # Handle error appropriately, e.g., skip or exit
