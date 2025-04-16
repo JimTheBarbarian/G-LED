@@ -30,16 +30,14 @@ def test_epoch(args,
 			batch = batch.to(args.device).float()
 			b_size = batch.shape[0]
 			num_time = batch.shape[1]
-			num_velocity = 2
-			batch = batch.reshape([b_size*num_time, num_velocity, 512, 512])
+			#num_velocity = 2 not doing BFS
+			batch = batch.reshape([b_size*num_time, 64])
 			batch_coarse = down_sampler(batch).reshape([b_size, 
 														num_time, 
-														num_velocity,
-														args.coarse_dim[0], 
-														args.coarse_dim[1]])
+														args.coarse_dim])
 			batch_coarse_flatten = batch_coarse.reshape([b_size, 
 														 num_time,
-														 num_velocity * args.coarse_dim[0] * args.coarse_dim[1]])
+														 args.coarse_dim])
 			
 			past = None
 			xn = batch_coarse_flatten[:,0:1,:]

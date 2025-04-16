@@ -15,7 +15,7 @@ def train_seq_shift(args,
 					loss_func, 
 					optimizer,
 					scheduler):
-	# N C H W
+	# N C L
 	down_sampler = torch.nn.Upsample(size=args.coarse_dim, 
 								     mode=args.coarse_mode)
 	Nt = args.start_Nt
@@ -73,16 +73,15 @@ def train_epoch(args,
 
 		b_size = batch.shape[0]
 		num_time = batch.shape[1]
-		num_velocity = 2
-		batch = batch.reshape([b_size*num_time, num_velocity, 512, 512])
+		#num_velocity = 2 # Not doing BFS equations
+		batch = batch.reshape([b_size*num_time, 64])
 		batch_coarse = down_sampler(batch).reshape([b_size, 
 													num_time, 
-													num_velocity,
-													args.coarse_dim[0], 
-													args.coarse_dim[1]])
+	
+													args.coarse_dim])
 		batch_coarse_flatten = batch_coarse.reshape([b_size, 
 													 num_time,
-													 num_velocity * args.coarse_dim[0] * args.coarse_dim[1]])
+													 args.coarse_dim])
 		assert num_time == args.n_ctx + 1
 		for j in (range(num_time - args.n_ctx)):
 			model.train()

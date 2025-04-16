@@ -39,7 +39,7 @@ class Args:
                                  default=0,
                                  help = 'the starting step of the data')
         self.parser.add_argument("--n_span",
-                                 default=8000,
+                                 default=640,
                                  help='the total step of the data from the staring step')
 
 
@@ -48,10 +48,10 @@ class Args:
                                  default=450,
                                  help = 'max seq_length (per seq) to valid the model')
         self.parser.add_argument("--start_n_valid", 
-                                 default=8000,
+                                 default=640,
                                  help = 'the starting step of the data')
         self.parser.add_argument("--n_span_valid",
-                                 default=500,
+                                 default=640,
                                  help='the total step of the data from the staring step')
                
 
@@ -68,7 +68,7 @@ class Args:
                                  default = True,
                                  help = 'out put attention matrix')
         self.parser.add_argument("--n_ctx",
-                                 default = 40,
+                                 default = 512,
                                  help='number steps transformer can look back at')
         self.parser.add_argument("--n_embd", 
                                  default = 16,
