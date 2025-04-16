@@ -167,7 +167,8 @@ if __name__ == '__main__':
     """
     pre-check
     """
-    assert args.coarse_dim[0]*args.coarse_dim[1]*2 == args.n_embd
+    # TODO change this 
+    assert args.coarse_dim == args.n_embd
     #assert args.trajec_max_len_valid == args.n_ctx + 1
     
     """

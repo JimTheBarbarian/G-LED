@@ -446,7 +446,7 @@ def test_sequential_model():
 	parentdir = os.path.dirname(currentdir)
 	sys.path.insert(0, parentdir) 
 
-	from main_seq_bsf import Args
+	from main_seq_bfs import Args
 	# Initialize config
 	config = Args()
     
