@@ -35,5 +35,6 @@ if __name__ == '__main__':
 	dloader = DataLoader(dataset=dset, batch_size = 20,shuffle = True)
 	for iteration, batch in enumerate(dloader):
 		print(iteration)
+		print(batch.shape)
 		print('Do something!')
 		pdb.set_trace()
