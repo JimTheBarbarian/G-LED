@@ -33,25 +33,25 @@ class Args:
                                             './data/data1.npy'],
                                  help='the relative or abosolute data.npy file')
         self.parser.add_argument("--trajec_max_len", 
-                                 default=41,
+                                 default=319,
                                  help = 'max seq_length (per seq) to train the model')
         self.parser.add_argument("--start_n", 
                                  default=0,
                                  help = 'the starting step of the data')
         self.parser.add_argument("--n_span",
-                                 default=640,
+                                 default=320,
                                  help='the total step of the data from the staring step')
 
 
 
         self.parser.add_argument("--trajec_max_len_valid", 
-                                 default=450,
+                                 default=64,
                                  help = 'max seq_length (per seq) to valid the model')
         self.parser.add_argument("--start_n_valid", 
-                                 default=640,
+                                 default=320,
                                  help = 'the starting step of the data')
         self.parser.add_argument("--n_span_valid",
-                                 default=640,
+                                 default=64,
                                  help='the total step of the data from the staring step')
                
 

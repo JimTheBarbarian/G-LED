@@ -91,16 +91,14 @@ def test_plot_eval(args,
 			batch = batch.to(args.device).float()		
 			b_size = batch.shape[0]
 			num_time = batch.shape[1]
-			num_velocity = 2
-			batch = batch.reshape([b_size*num_time, num_velocity, 512, 512])
+			#num_velocity = 2
+			batch = batch.reshape([b_size*num_time, 64])
 			batch_coarse = down_sampler(batch).reshape([b_size, 
 														num_time, 
-														num_velocity,
-														args.coarse_dim[0], 
-														args.coarse_dim[1]])
+														args.coarse_dim])
 			batch_coarse_flatten = batch_coarse.reshape([b_size, 
 														 num_time,
-														 num_velocity * args.coarse_dim[0] * args.coarse_dim[1]])
+														 args.coarse_dim])
 			
 			past = None
 			xn = batch_coarse_flatten[:,0:1,:]
@@ -129,17 +127,14 @@ def test_plot_eval(args,
 				truth      = batch_coarse_flatten[i:i+1,previous_len:previous_len+Nt,:]
 				# spatial recover
 				prediction = prediction.reshape([prediction.shape[0],
-									             prediction.shape[1],
-												 num_velocity,
-												 args.coarse_dim[0],
-												 args.coarse_dim[1]])
+									             prediction.shape[1],												 args.coarse_dim[0],
+												 args.coarse_dim])
 				truth = truth.reshape([truth.shape[0],
 									   truth.shape[1],
-									   num_velocity,
-									   args.coarse_dim[0],
-									   args.coarse_dim[1]])
+									   args.coarse_dim])
 				
 				seq_name = 'batch'+str(iteration)+'sample'+str(i)
+				'''
 				try:
 					os.makedirs(contour_dir+'/'+seq_name)
 				except:
@@ -190,7 +185,7 @@ def test_plot_eval(args,
 						fig.colorbar(im0,orientation="horizontal",ax = axes)
 						fig.savefig(sub_seq_name+'/time'+str(t)+'.png', bbox_inches='tight',dpi=500)
 						plt.close(fig)
-
+						'''
 """
 start test
 """
@@ -216,6 +211,7 @@ def eval_seq_overall(args_train,
 	print('#### min mre test####=',min_mre)
 	print('#### 3 sigma ####=',sigma3)
 	print('Test elapsed ', time.time()-tic)
+	'''
 	test_plot_eval(args=args_train,
 				   args_sample = args_sample,
 				   model=model, 
@@ -223,3 +219,4 @@ def eval_seq_overall(args_train,
 				   loss_func=loss_func,
 				   Nt=Nt,
 				   down_sampler=down_sampler)
+	'''
