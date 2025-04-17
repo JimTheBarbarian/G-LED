@@ -35,7 +35,7 @@ class Args:
 		for diffusion model
 		"""
 		self.parser.add_argument("--Nt",
-								 default = 10,
+								 default = 320,
 								 help = 'Time steps we use as a single seq')
 		self.parser.add_argument("--unet_dim", 
 								 default=32,
