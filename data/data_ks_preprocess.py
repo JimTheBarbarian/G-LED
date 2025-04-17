@@ -11,25 +11,26 @@ class bfs_dataset(Dataset):
 				 data_location=['./data0.npy'],
 				 trajec_max_len=50,
 				 start_n=0,
-				 num_trajs=1,
+				 #num_trajs=1,
 				 n_span=510):
-		assert n_span > trajec_max_len
+		#assert n_span > trajec_max_len
+		solution0 = np.load(data_location[0],allow_pickle = True)
+
 		self.start_n = start_n
-		self.num_trajs= num_trajs
-		self.n_span  = n_span
 		self.trajec_max_len = trajec_max_len
 
-		solution0 = np.load(data_location[0],allow_pickle = True)
 		#solution1 = np.load(data_location[1],allow_pickle = True)
 		#solution  = np.concatenate([solution0,
 		#							solution1],axis = 0)
-		self.solution = torch.from_numpy(solution0[:num_trajs])
-
+		self.solution = torch.from_numpy(solution0)
+		self.num_trajs = self.solution.shape[0]
+		self.n_span = self.solution.shape[1]
+		self.trajec_max_len = trajec_max_len
 	def __len__(self):
-		return self.num_trajs*(self.n_span - self.trajec_max_len)
+		return self.num_trajs
 		
 	def __getitem__(self, index):
-		return self.solution[:,index:index+self.trajec_max_len]
+		return self.solution[index]
 
 
 if __name__ == '__main__':
