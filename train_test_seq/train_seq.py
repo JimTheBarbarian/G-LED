@@ -16,7 +16,7 @@ def train_seq_shift(args,
 					optimizer,
 					scheduler):
 	# N C L
-	down_sampler = torch.nn.Upsample(size=args.coarse_dim, 
+	down_sampler = torch.nn.Upsample(size=(1,args.coarse_dim), 
 								     mode=args.coarse_mode)
 	Nt = args.start_Nt
 	for epoch in tqdm(range(args.epoch_num)):
@@ -74,7 +74,7 @@ def train_epoch(args,
 		b_size = batch.shape[0]
 		num_time = batch.shape[1]
 		#num_velocity = 2 # Not doing BFS equations
-		batch = batch.reshape([b_size*num_time, 64])
+		batch = batch.reshape([b_size,num_time, 1,64])
 		batch_coarse = down_sampler(batch).reshape([b_size, 
 													num_time, 
 	
