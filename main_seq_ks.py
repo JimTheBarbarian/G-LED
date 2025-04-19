@@ -44,7 +44,7 @@ class Args:
 
 
         self.parser.add_argument("--trajec_max_len_valid", 
-                                 default=64,
+                                 default=384,
                                  help = 'max seq_length (per seq) to valid the model')
         self.parser.add_argument("--start_n_valid", 
                                  default=320,
@@ -137,19 +137,19 @@ class Args:
         
     def update_args(self):
         args = self.parser.parse_args()
-        #args.time = '{0:%Y_%m_%d_%H_%M_%S}'.format(datetime.now())
+        args.time = '{0:%Y_%m_%d_%H_%M_%S}'.format(datetime.now())
         # output dataset
-        #args.dir_output = 'output/'
-        #args.fname = args.dataset + '_' +args.time
-        #args.experiment_path = args.dir_output + args.fname
-        #args.model_save_path = args.experiment_path + '/' + 'model_save/'
-        #args.logging_path = args.experiment_path + '/' + 'logging/'
-        #args.current_model_save_path = args.model_save_path
-        #args.logging_epoch_path = args.logging_path + 'epoch_history.csv'
-        #if not os.path.isdir(args.logging_path):
-        #    os.makedirs(args.logging_path)
-        #if not os.path.isdir(args.model_save_path):
-        #    os.makedirs(args.model_save_path)
+        args.dir_output = 'output/'
+        args.fname = args.dataset + '_' +args.time
+        args.experiment_path = args.dir_output + args.fname
+        args.model_save_path = args.experiment_path + '/' + 'model_save/'
+        args.logging_path = args.experiment_path + '/' + 'logging/'
+        args.current_model_save_path = args.model_save_path
+        args.logging_epoch_path = args.logging_path + 'epoch_history.csv'
+        if not os.path.isdir(args.logging_path):
+            os.makedirs(args.logging_path)
+        if not os.path.isdir(args.model_save_path):
+            os.makedirs(args.model_save_path)
         return args
 
 
@@ -185,7 +185,8 @@ if __name__ == '__main__':
     data_set_valid = bfs_dataset(data_location  = args.data_location,
                                  trajec_max_len = args.trajec_max_len_valid,
                                  start_n        = args.start_n_valid,
-                                 n_span         = args.n_span_valid)
+                                 n_span         = args.n_span_valid,
+                                 flag = 'valid')
     data_loader_train = DataLoader(dataset    = data_set_train,
                                    shuffle    = args.shuffle,
                                    batch_size = args.batch_size)
