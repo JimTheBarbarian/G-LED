@@ -67,7 +67,7 @@ class Args:
                                  default = True,
                                  help = 'out put attention matrix')
         self.parser.add_argument("--n_ctx",
-                                 default = 256,
+                                 default = 383,
                                  help='number steps transformer can look back at')
         self.parser.add_argument("--n_embd", 
                                  default =16,
