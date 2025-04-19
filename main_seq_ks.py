@@ -176,16 +176,15 @@ if __name__ == '__main__':
     tic = time.time()
     data_set_train = bfs_dataset(data_location  = args.data_location,
                                  trajec_max_len = args.trajec_max_len,
-                                 start_n        = args.start_n,
-                                 n_span         = args.n_span)
+                                 start_n        = args.start_n)
+                                 #n_span         = args.n_span)
     data_set_test_on_train = bfs_dataset(data_location  = args.data_location,
                                          trajec_max_len = args.trajec_max_len_valid,
-                                         start_n        = args.start_n,
-                                         n_span         = args.n_span)
+                                         start_n        = args.start_n)
+                                         #n_span         = args.n_span)
     data_set_valid = bfs_dataset(data_location  = args.data_location,
                                  trajec_max_len = args.trajec_max_len_valid,
                                  start_n        = args.start_n_valid,
-                                 n_span         = args.n_span_valid,
                                  flag = 'valid')
     data_loader_train = DataLoader(dataset    = data_set_train,
                                    shuffle    = args.shuffle,
