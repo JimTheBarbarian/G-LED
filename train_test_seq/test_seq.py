@@ -6,6 +6,7 @@ import time
 import os
 import matplotlib.pyplot as plt
 import matplotlib
+from accelerate import Accelerator
 """
 Start training test
 """
@@ -15,23 +16,27 @@ def test_epoch(args,
 			   loss_func,
 			   Nt,
 			   down_sampler,
-			   ite_thold = None):
+			   ite_thold = None,
+			   accelerator = None):
+	assert accelerator is not None, "accelerator should be passed in"
+	model.eval()
 	with torch.no_grad():
 		#IDHistory = [0] + [i for i in range(2, args.n_ctx)]
 		IDHistory = [i for i in range(1, args.n_ctx)]
 		REs = []
-		print("Total ite", len(data_loader))
-		for iteration, batch in tqdm(enumerate(data_loader)):
+		accelerator.print("Total ite", len(data_loader))
+		for iteration, batch in tqdm(enumerate(data_loader),disable=not accelerator.is_local_main_process):
 			if ite_thold is None:
 				pass
 			else:
 				if iteration>ite_thold:
 					break
-			batch = batch.to(args.device).float()
+			#batch = batch.to(args.device).float()
+			batch = batch.float()
 			b_size = batch.shape[0]
 			num_time = batch.shape[1]
 			#num_velocity = 2 not doing BFS
-			batch = batch.reshape([b_size*num_time, 64])
+			batch = batch.reshape([b_size,num_time, 1,64])
 			batch_coarse = down_sampler(batch).reshape([b_size, 
 														num_time, 
 														args.coarse_dim])

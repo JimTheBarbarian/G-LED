@@ -9,7 +9,7 @@ import argparse
 import pickle
 import pdb
 from tqdm import tqdm
-
+from accelerate import Accelerator
 
 
 def get_data_location(args):
@@ -24,7 +24,7 @@ def get_data_location(args):
 	return data_location
 
 
-def save_loss(args, loss_list, Nt):
+def save_loss(args, loss_list, Nt,accelerator):
 	plt.figure()
 	plt.plot(loss_list,'-o')
 	plt.yscale('log')
@@ -34,16 +34,20 @@ def save_loss(args, loss_list, Nt):
 	print(os.path.join(args.logging_path, 'loss_curve.png'))
 	plt.savefig(os.path.join(args.logging_path, 'loss_curve.png'))
 	plt.close()
-	np.savetxt(os.path.join(args.logging_path, 'loss_curve.txt'), 
+	if accelerator.is_main_process:
+		np.savetxt(os.path.join(args.logging_path, 'loss_curve.txt'), 
 				np.asarray(loss_list))
 
-def save_args(args):
-	with open(os.path.join(args.logging_path, 'args.txt'), 'w') as f:
-		json.dump(args.__dict__, f, indent=2)
+def save_args(args,accelerator):
+	if accelerator.is_main_process:
+		with open(os.path.join(args.logging_path, 'args.txt'), 'w') as f:
+			json.dump(args.__dict__, f, indent=2)
 
-def save_args_sample(args,name):
-	with open(os.path.join(args.experiment_path, name), 'w') as f:
-		json.dump(args.__dict__, f, indent=2)
+def save_args_sample(args,name,accelerator):
+	if accelerator.is_main_process:
+
+		with open(os.path.join(args.experiment_path, name), 'w') as f:
+			json.dump(args.__dict__, f, indent=2)
 
 def read_args_txt(args, argtxt):
 	#args.parser.parse_args(namespace=args.update_args_no_folder_create()) 
@@ -52,17 +56,19 @@ def read_args_txt(args, argtxt):
 	return args
 	return t
 
-def save_model(model, args, Nt, bestModel = False):
+def save_model(model, args, Nt, accelerator, bestModel = False):
+	accelerator.wait_for_everyone()
+	save_dir = args.current_model_save_path
 	if bestModel:
-		torch.save(model.state_dict(), 
-				   os.path.join(args.model_save_path, 
-				   'best_model_sofar'))
-		np.savetxt(os.path.join(args.model_save_path, 
-				   'best_model_sofar_Nt'),np.ones(2)*Nt)
+		save_dir = os.path.join(save_dir, f"best_model_Nt_{Nt}")
 	else:
-		torch.save(model.state_dict(), 
-				os.path.join(args.model_save_path, 
-				'model_epoch_' + str(Nt)))
+		save_dir = os.path.join(save_dir, f"final_model_Nt_{Nt}")
+    
+    # accelerator.save_state saves model, optimizer, scheduler states etc.
+	accelerator.save_state(save_dir) 
+	if accelerator.is_main_process:
+        # Optionally save args again or other metadata if needed
+		pass 
 	
 def load_model(model,args_train,args_sample):
 	if args_sample.usebestmodel:

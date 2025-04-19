@@ -18,7 +18,7 @@ from sequentialModel import SequentialModel as transformer
 sys.path.insert(0, './train_test_seq')
 from train_seq import train_seq_shift
 import time
-
+from accelerator import Accelerator
 class Args:
     def __init__(self):
         self.parser = argparse.ArgumentParser()
@@ -113,10 +113,10 @@ class Args:
         self.parser.add_argument("--shuffle",
                                  default=True,
                                  help = 'shuffle the batch')
-        self.parser.add_argument("--device",
-                                 default='cuda:1')
+        #self.parser.add_argument("--device",
+        #                         default='cuda:1')
         self.parser.add_argument("--epoch_num", 
-                                 default = 10000,
+                                 default = 4000,
                                  help='epoch_num')
         self.parser.add_argument("--learning_rate", 
                                  default = 1e-4,
@@ -146,10 +146,10 @@ class Args:
         args.logging_path = args.experiment_path + '/' + 'logging/'
         args.current_model_save_path = args.model_save_path
         args.logging_epoch_path = args.logging_path + 'epoch_history.csv'
-        if not os.path.isdir(args.logging_path):
-            os.makedirs(args.logging_path)
-        if not os.path.isdir(args.model_save_path):
-            os.makedirs(args.model_save_path)
+        #if not os.path.isdir(args.logging_path):
+        #    os.makedirs(args.logging_path)
+        #if not os.path.isdir(args.model_save_path):
+        #    os.makedirs(args.model_save_path)
         return args
 
 
@@ -160,9 +160,19 @@ class Args:
 
 
 if __name__ == '__main__':
+    accelerator = Accelerator()
+
     args = Args()
     args = args.update_args()
-    save_args(args)
+    
+
+    if accelerator.is_main_process:
+        if not os.path.isdir(args.logging_path):
+            os.makedirs(args.logging_path)
+        if not os.path.isdir(args.model_save_path):
+            os.makedirs(args.model_save_path)
+        save_args(args,accelerator)
+
     """
     pre-check
     """
@@ -172,7 +182,7 @@ if __name__ == '__main__':
     """
     fetch data
     """
-    print('Start data_set')
+    accelerator.print('Start data_set')
     tic = time.time()
     data_set_train = bfs_dataset(data_location  = args.data_location,
                                  trajec_max_len = args.trajec_max_len,
@@ -195,12 +205,14 @@ if __name__ == '__main__':
     data_loader_valid = DataLoader(dataset    = data_set_valid,
                                    shuffle    = args.shuffle,
                                    batch_size = args.batch_size_valid)
-    print('Done data-set use time ', time.time() - tic)
+    accelerator.print(f'Done data-set use time ', {time.time() - tic})
     """
     create model
     """
-    model = transformer(args).to(args.device).float()
-    print('Number of parameters: {}'.format(model._num_parameters()))
+    #model = transformer(args).to(args.device).float()
+
+    model = transformer(args).float()
+    accelerator.print('Number of parameters: {}'.format(model._num_parameters()))
     
     """
     create loss function
@@ -218,6 +230,10 @@ if __name__ == '__main__':
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer,
                                                 step_size=1,
                                                 gamma=args.gamma)    
+    # +++ Prepare components with Accelerator
+    model, optimizer, data_loader_train, data_loader_test_on_train, data_loader_valid, scheduler = accelerator.prepare(
+        model, optimizer, data_loader_train, data_loader_test_on_train, data_loader_valid, scheduler
+    )
     """
     train
     """
