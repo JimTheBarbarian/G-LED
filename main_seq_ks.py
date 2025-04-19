@@ -12,7 +12,7 @@ from torch.utils.data import DataLoader
 sys.path.insert(0, './util')
 from utils import save_args
 sys.path.insert(0, './data')
-from data_bfs_preprocess import bfs_dataset 
+from data_ks_preprocess import bfs_dataset 
 sys.path.insert(0, './transformer')
 from sequentialModel import SequentialModel as transformer
 sys.path.insert(0, './train_test_seq')
