@@ -78,7 +78,7 @@ def train_seq_shift(args,
 							device=args.device,
 							distributed=args.distributed)
 				
-		print('Epoch elapsed ', time.time()-tic)
+			print('Epoch elapsed ', time.time()-tic)
 	if is_main_process():
 		save_model(model, args, Nt, bestModel = False)
 def train_epoch(args, 
