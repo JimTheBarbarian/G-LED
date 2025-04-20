@@ -254,7 +254,7 @@ if __name__ == '__main__':
     """
     #model = transformer(args).to(args.device).float()
 
-    model = transformer(args).float()
+    model = transformer(args).to(args.device).float()
     if is_main_process(): print('Number of parameters: {}'.format(model._num_parameters()))
     if args.distributed:
         model = DDP(model, device_ids=[args.local_rank], output_device=args.local_rank)
