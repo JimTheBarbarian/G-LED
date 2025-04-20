@@ -174,6 +174,16 @@ if __name__ == '__main__':
 
     args = Args()
     args = args.update_args()
+
+
+    if "LOCAL_RANK" in os.environ:
+        args.local_rank = int(os.environ["LOCAL_RANK"])
+        if args.local_rank != -1:
+            
+            args.device = f'cuda:{args.local_rank}'
+            torch.cuda.set_device(args.local_rank)
+        else:
+            args.device = 'cuda' if torch.cuda.is_available() else 'cpu'
     
     # +++ Initialize distributed environment
     if "WORLD_SIZE" in os.environ:
