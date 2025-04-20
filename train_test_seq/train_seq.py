@@ -26,9 +26,14 @@ def train_seq_shift(args,
 		tic = time.time()
 		if args.distributed and sampler_train is not None:
 			sampler_train.set_epoch(epoch)
-		if is_main_process():print('Start epoch '+ str(epoch)+' at Nt ', Nt)
+		 # This variable helps make sure we have the correct Nt value on all gpus
+		 # While still only doing validation on the main gpu
+		march_nt_decision = [False]
 		if epoch >0:
-			max_mre,min_mre, mean_mre, sigma3 = test_epoch(args=args,
+
+			if is_main_process():
+				print('Start epoch '+ str(epoch)+' at Nt ', Nt)
+				max_mre,min_mre, mean_mre, sigma3 = test_epoch(args=args,
 														   model=model, 
 														   data_loader=data_loader_valid,
 														   loss_func=loss_func,
@@ -38,22 +43,33 @@ def train_seq_shift(args,
 														   device = args.device,
 														   distributed=args.distributed
 														   )
-			if is_main_process():	
+			
 
 
 				print('#### max  re train####=',max_mre)
 				print('#### mean re train####=',mean_mre)
 				print('#### min  re train####=',min_mre)
 				print('#### 3 sigma train ####=',sigma3)
-			if (max_mre < args.march_tol) or (mean_mre < args.march_tol*0.1):
-				save_model(model, args, Nt, bestModel = True)
-				Nt += args.d_Nt
+				if (max_mre < args.march_tol) or (mean_mre < args.march_tol*0.1):
+					march_nt_decision[0] = True
+					save_model(model, args, Nt, bestModel = True)
+					Nt += args.d_Nt
 				scheduler.step()
 				continue
 		if args.distributed and epoch > 0:
-			dist.barrier()
+			dist.broadcast_object_list(march_nt_decision,src=0)
+
+
+		if march_nt_decision[0]:
+			Nt += args.d_Nt
+			scheduler.step()
+			
 		
-		model = train_epoch(args=args,
+		if args.distributed:
+			dist.barrier()
+
+		if not march_nt_decision[0]:					
+			model = train_epoch(args=args,
 							model=model, 
 							data_loader=data_loader,
 							loss_func=loss_func,
@@ -63,7 +79,8 @@ def train_seq_shift(args,
 							distributed=args.distributed)
 				
 		print('Epoch elapsed ', time.time()-tic)
-	save_model(model, args, Nt, bestModel = False)
+	if is_main_process():
+		save_model(model, args, Nt, bestModel = False)
 def train_epoch(args, 
 				model, 
 				data_loader, 
