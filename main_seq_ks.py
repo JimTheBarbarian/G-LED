@@ -109,7 +109,7 @@ class Args:
                                  default=1,
                                  help='The change length of forward propgatate')
         self.parser.add_argument("--batch_size",
-                                 default=16, #max 16->0.047
+                                 default=32, #max 16->0.047
                                  help = 'how many seqs you want to train together per bp')
         self.parser.add_argument("--batch_size_valid",
                                  default=16, #max 16->0.047
@@ -120,7 +120,7 @@ class Args:
         #self.parser.add_argument("--device",
         #                         default='cuda:1')
         self.parser.add_argument("--epoch_num", 
-                                 default = 4000,
+                                 default = 1000,
                                  help='epoch_num')
         self.parser.add_argument("--learning_rate", 
                                  default = 1e-4,

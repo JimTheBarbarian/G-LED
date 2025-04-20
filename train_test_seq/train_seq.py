@@ -33,6 +33,7 @@ def train_seq_shift(args,
 
 			if is_main_process():
 				print('Start epoch '+ str(epoch)+' at Nt ', Nt)
+				'''
 				max_mre,min_mre, mean_mre, sigma3 = test_epoch(args=args,
 														   model=model, 
 														   data_loader=data_loader_valid,
@@ -44,7 +45,7 @@ def train_seq_shift(args,
 														   distributed=args.distributed
 														   )
 			
-
+				
 
 				print('#### max  re train####=',max_mre)
 				print('#### mean re train####=',mean_mre)
@@ -53,7 +54,8 @@ def train_seq_shift(args,
 				if (max_mre < args.march_tol) or (mean_mre < args.march_tol*0.1):
 					march_nt_decision[0] = True
 					save_model(model, args, Nt, bestModel = True)
-					Nt += args.d_Nt
+				'''
+				Nt += args.d_Nt
 				scheduler.step()
 				continue
 		if args.distributed and epoch > 0:
