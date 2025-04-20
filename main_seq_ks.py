@@ -8,9 +8,13 @@ import numpy as np
 import json
 import torch
 from torch.utils.data import DataLoader
+import torch.distributed as dist
+from torch.nn.parallel import DistributedDataParallel as DDP
+from torch.utils.data.distributed import DistributedSampler
+
 # Internal package
 sys.path.insert(0, './util')
-from utils import save_args
+from utils import save_args,is_main_process,setup_for_distributed
 sys.path.insert(0, './data')
 from data_ks_preprocess import bfs_dataset 
 sys.path.insert(0, './transformer')
@@ -18,7 +22,7 @@ from sequentialModel import SequentialModel as transformer
 sys.path.insert(0, './train_test_seq')
 from train_seq import train_seq_shift
 import time
-from accelerator import Accelerator
+
 class Args:
     def __init__(self):
         self.parser = argparse.ArgumentParser()
@@ -134,9 +138,15 @@ class Args:
         self.parser.add_argument("--march_tol", 
                                  default=0.01,
                                  help='march threshold for Nt + 1')
-        
+        self.parser.add_argument("--local_rank",type=int,default=-1)
     def update_args(self):
         args = self.parser.parse_args()
+        # +++ Set device based on local rank
+        if args.local_rank != -1:
+            args.device = f'cuda:{args.local_rank}'
+            torch.cuda.set_device(args.device)
+        else: # Handle non-distributed case or CPU
+             args.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         args.time = '{0:%Y_%m_%d_%H_%M_%S}'.format(datetime.now())
         # output dataset
         args.dir_output = 'output/'
@@ -160,18 +170,35 @@ class Args:
 
 
 if __name__ == '__main__':
-    accelerator = Accelerator()
+    
 
     args = Args()
     args = args.update_args()
     
+    # +++ Initialize distributed environment
+    if "WORLD_SIZE" in os.environ:
+        args.world_size = int(os.environ["WORLD_SIZE"])
+        args.distributed = args.world_size > 1
+    else:
+        args.world_size = 1
+        args.distributed = False
 
-    if accelerator.is_main_process:
+    if args.distributed:
+        print(f"Initializing process group for rank {args.local_rank}...")
+        dist.init_process_group(backend='nccl', init_method='env://')
+        # Ensure setup_for_distributed is called after init_process_group
+        setup_for_distributed(args.local_rank == 0) # Pass is_main_process flag
+        print(f"Process group initialized for rank {args.local_rank}.")
+    else:
+        # Still call setup for non-distributed case to set the flag
+        setup_for_distributed(True) 
+
+    if is_main_process():
         if not os.path.isdir(args.logging_path):
             os.makedirs(args.logging_path)
         if not os.path.isdir(args.model_save_path):
             os.makedirs(args.model_save_path)
-        save_args(args,accelerator)
+        save_args(args)
 
     """
     pre-check
@@ -182,8 +209,10 @@ if __name__ == '__main__':
     """
     fetch data
     """
-    accelerator.print('Start data_set')
+    print('Start data_set')
     tic = time.time()
+    
+
     data_set_train = bfs_dataset(data_location  = args.data_location,
                                  trajec_max_len = args.trajec_max_len,
                                  start_n        = args.start_n)
@@ -196,24 +225,40 @@ if __name__ == '__main__':
                                  trajec_max_len = args.trajec_max_len_valid,
                                  start_n        = args.start_n_valid,
                                  flag = 'valid')
+    sampler_train = DistributedSampler(data_set_train, shuffle=args.shuffle) if args.distributed else None
+    sampler_test_on_train = DistributedSampler(data_set_test_on_train, shuffle=False) if args.distributed else None
+    sampler_valid = DistributedSampler(data_set_valid, shuffle=False) if args.distributed else None
+
     data_loader_train = DataLoader(dataset    = data_set_train,
-                                   shuffle    = args.shuffle,
-                                   batch_size = args.batch_size)
+                                   sampler = sampler_train,
+                                   shuffle    = False if args.distributed else args.shuffle,
+                                   pin_memory = True,
+                                   batch_size = args.batch_size,
+                                   num_workers = 4)
+                                   
     data_loader_test_on_train = DataLoader(dataset    = data_set_test_on_train,
-                                           shuffle    = args.shuffle,
-                                           batch_size = args.batch_size_valid)
+                                           sampler = sampler_test_on_train,
+                                           pin_memory = True,
+                                           shuffle    = False,
+                                           batch_size = args.batch_size_valid,
+                                           num_workers = 4)
     data_loader_valid = DataLoader(dataset    = data_set_valid,
-                                   shuffle    = args.shuffle,
-                                   batch_size = args.batch_size_valid)
-    accelerator.print(f'Done data-set use time ', {time.time() - tic})
+                                   sampler = sampler_valid,
+                                   pin_memory = True,
+                                   shuffle    = False,
+                                   batch_size = args.batch_size_valid,
+                                   num_workers = 4)
+    if is_main_process(): print(f'Done data-set use time ', {time.time() - tic})
     """
     create model
     """
     #model = transformer(args).to(args.device).float()
 
     model = transformer(args).float()
-    accelerator.print('Number of parameters: {}'.format(model._num_parameters()))
-    
+    if is_main_process(): print('Number of parameters: {}'.format(model._num_parameters()))
+    if args.distributed:
+        model = DDP(model, device_ids=[args.local_rank], output_device=args.local_rank)
+        #model = DDP(model, device_ids=[args.local_rank], output_device=args.local_rank, find_unused_parameters=True)
     """
     create loss function
     """
@@ -230,16 +275,15 @@ if __name__ == '__main__':
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer,
                                                 step_size=1,
                                                 gamma=args.gamma)    
-    # +++ Prepare components with Accelerator
-    model, optimizer, data_loader_train, data_loader_test_on_train, data_loader_valid, scheduler = accelerator.prepare(
-        model, optimizer, data_loader_train, data_loader_test_on_train, data_loader_valid, scheduler
-    )
+
     """
     train
     """
     train_seq_shift(args=args, 
                     model=model, 
                     data_loader=data_loader_train, 
+
+                    sampler_train = sampler_train,
                     data_loader_copy = data_loader_test_on_train,
                     data_loader_valid = data_loader_valid,
                     loss_func=loss_func, 

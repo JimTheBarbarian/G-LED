@@ -6,7 +6,9 @@ import time
 import os
 import matplotlib.pyplot as plt
 import matplotlib
-from accelerate import Accelerator
+import torch.distributed as dist
+from utils import is_main_process
+
 """
 Start training test
 """
@@ -17,22 +19,27 @@ def test_epoch(args,
 			   Nt,
 			   down_sampler,
 			   ite_thold = None,
-			   accelerator = None):
-	assert accelerator is not None, "accelerator should be passed in"
-	model.eval()
+			   device = None,
+			   distributed = False
+			   ):
+	assert device is not None, "device must be provided"
+    
+    # +++ Use model.module if distributed, otherwise use model directly
+	eval_model = model.module if distributed else model
+	eval_model.eval() # Set the underlying model to eval mode
 	with torch.no_grad():
 		#IDHistory = [0] + [i for i in range(2, args.n_ctx)]
 		IDHistory = [i for i in range(1, args.n_ctx)]
 		REs = []
-		accelerator.print("Total ite", len(data_loader))
-		for iteration, batch in tqdm(enumerate(data_loader),disable=not accelerator.is_local_main_process):
+		if is_main_process():print("Total ite", len(data_loader))
+		for iteration, batch in tqdm(enumerate(data_loader)):
 			if ite_thold is None:
 				pass
 			else:
 				if iteration>ite_thold:
 					break
-			#batch = batch.to(args.device).float()
-			batch = batch.float()
+			batch = batch.to(device).float()
+			#batch = batch.float()
 			b_size = batch.shape[0]
 			num_time = batch.shape[1]
 			#num_velocity = 2 not doing BFS
@@ -50,24 +57,51 @@ def test_epoch(args,
 			mem = []
 			for j in (range(Nt)):
 				if j == 0:
-					xnp1,past,_,_=model(inputs_embeds = xn, past=past)
+					xnp1,past,_,_=eval_model(inputs_embeds = xn, past=past)
 				elif past[0][0].shape[2] < args.n_ctx and j > 0:
-					xnp1,past,_,_=model(inputs_embeds = xn, past=past)
+					xnp1,past,_,_=eval_model(inputs_embeds = xn, past=past)
 				else:
 					past = [[past[l][0][:,:,IDHistory,:], past[l][1][:,:,IDHistory,:]] for l in range(args.n_layer)]
-					xnp1,past,_,_=model(inputs_embeds = xn, past=past)
+					xnp1,past,_,_=eval_model(inputs_embeds = xn, past=past)
 				xn = xnp1
 				mem.append(xn)
 			mem=torch.cat(mem,dim=1)
 
-			local_batch_size = mem.shape[0]
-			for i in tqdm(range(local_batch_size)):
-				er = loss_func(mem[i:i+1],
-							   batch_coarse_flatten[i:i+1,previous_len:previous_len+Nt,:])
-				r_er = er/loss_func(mem[i:i+1]*0,
-									batch_coarse_flatten[i:i+1,previous_len:previous_len+Nt,:])
-				REs.append(r_er.item())
-	return max(REs),min(REs),sum(REs)/len(REs),3*np.std(np.asarray(REs))
+			# Calculate loss for the local batch
+            # +++ Vectorize loss calculation if possible
+			target = batch_coarse_flatten[:,previous_len:previous_len+Nt,:]	
+			er = loss_func(mem, target)
+            # Avoid division by zero if target norm is zero
+			target_norm_sq = loss_func(target*0, target)
+			r_er = er / target_norm_sq if target_norm_sq > 1e-9 else torch.tensor(0.0, device=device)
+            
+            # +++ Store the single relative error for the batch (or average if needed)
+			REs.append(r_er.item()) # Append scalar relative error for this batch
+
+        # +++ Gather results if distributed
+		all_REs = []
+		if distributed:
+            # Ensure all processes reach this point
+			dist.barrier() 
+            # Gather lists of scalars using all_gather_object
+			world_size = dist.get_world_size()
+			gathered_REs = [None] * world_size
+			dist.all_gather_object(gathered_REs, REs)
+			if is_main_process():
+				all_REs = [item for sublist in gathered_REs for item in sublist]
+			else:
+				all_REs = REs
+		        # +++ Calculate final metrics only on the main process			
+		if is_main_process():
+			if not all_REs: # Handle case with no results
+				return 0.0, 0.0, 0.0, 0.0 
+	
+			REs_np = np.array(all_REs)
+			max_mre = np.max(REs_np)
+			min_mre = np.min(REs_np)
+			mean_mre = np.mean(REs_np)
+			sigma3 = np.std(REs_np) * 3
+			return max_mre, min_mre, mean_mre, sigma3
 
 
 
