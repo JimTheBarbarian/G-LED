@@ -82,6 +82,8 @@ def train_seq_shift(args,
 			print('Epoch elapsed ', time.time()-tic)
 	if is_main_process():
 		save_model(model, args, Nt, bestModel = False)
+		return
+
 def train_epoch(args, 
 				model, 
 				data_loader, 
