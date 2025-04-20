@@ -57,20 +57,19 @@ def train_seq_shift(args,
 				'''
 				Nt += args.d_Nt
 				scheduler.step()
-				continue
-		if args.distributed and epoch > 0:
-			dist.broadcast_object_list(march_nt_decision,src=0)
+		#if args.distributed and epoch > 0:
+		#	dist.broadcast_object_list(march_nt_decision,src=0)
 
 
-		if march_nt_decision[0]:
-			Nt += args.d_Nt
-			scheduler.step()
+		#if march_nt_decision[0]:
+		#	Nt += args.d_Nt
+		#	scheduler.step()
 			
 		
-		if args.distributed:
-			dist.barrier()
+		#if args.distributed:
+		#	dist.barrier()
 
-		if not march_nt_decision[0]:					
+		#if not march_nt_decision[0]:					
 			model = train_epoch(args=args,
 							model=model, 
 							data_loader=data_loader,
