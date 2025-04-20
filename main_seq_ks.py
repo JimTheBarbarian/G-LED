@@ -120,7 +120,7 @@ class Args:
         #self.parser.add_argument("--device",
         #                         default='cuda:1')
         self.parser.add_argument("--epoch_num", 
-                                 default = 1000,
+                                 default = 2000,
                                  help='epoch_num')
         self.parser.add_argument("--learning_rate", 
                                  default = 1e-4,

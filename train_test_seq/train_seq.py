@@ -55,8 +55,7 @@ def train_seq_shift(args,
 					march_nt_decision[0] = True
 					save_model(model, args, Nt, bestModel = True)
 				'''
-				Nt += args.d_Nt
-				scheduler.step()
+			Nt += args.d_Nt
 		#if args.distributed and epoch > 0:
 		#	dist.broadcast_object_list(march_nt_decision,src=0)
 
@@ -78,7 +77,8 @@ def train_seq_shift(args,
 							down_sampler=down_sampler,
 							device=args.device,
 							distributed=args.distributed)
-				
+			scheduler.step()
+
 			print('Epoch elapsed ', time.time()-tic)
 	if is_main_process():
 		save_model(model, args, Nt, bestModel = False)
