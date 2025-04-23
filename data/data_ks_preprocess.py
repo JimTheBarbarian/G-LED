@@ -25,6 +25,7 @@ class bfs_dataset(Dataset):
 		#solution  = np.concatenate([solution0,
 		#							solution1],axis = 0)
 		self.solution = torch.from_numpy(solution0)
+		self.flag = flag
 		if flag == 'train':
 			self.solution = self.solution[:val_start]
 		elif flag == 'val':
@@ -38,7 +39,10 @@ class bfs_dataset(Dataset):
 		return self.num_trajs
 		
 	def __getitem__(self, index):
-		return self.solution[index]
+		if self.flag == 'test':
+			return self.solution[index,:self.start_n]
+		else:
+			return self.solution[index]
 
 
 if __name__ == '__main__':
