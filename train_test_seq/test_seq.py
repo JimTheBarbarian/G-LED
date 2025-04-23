@@ -9,13 +9,12 @@ import matplotlib
 import torch
 import torch.nn as nn
 import torch.distributed as dist
-from utils import is_main_process
+from util.utils import is_main_process,read_args_txt
 import sys
 from torch.utils.data import DataLoader as Dataloader
 
 import argparse
 sys.path.insert(0, '../util') # Adjust path if needed
-from utils import read_args_txt
 sys.path.insert(0, '../data') # Adjust path if needed
 from data_ks_preprocess import bfs_dataset 
 sys.path.insert(0, '../transformer') # Adjust path if needed
