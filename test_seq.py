@@ -24,10 +24,7 @@ sys.path.append(os.path.join(ROOT_DIR, 'transformer'))
 
 
 import argparse
-sys.path.insert(0, '../util') # Adjust path if needed
-sys.path.insert(0, '../data') # Adjust path if needed
-from data_ks_preprocess import bfs_dataset 
-sys.path.insert(0, '../transformer') # Adjust path if needed
+from data.data_ks_preprocess import bfs_dataset 
 from util.utils import is_main_process,read_args_txt
 
 from sequentialModel import SequentialModel as transformer
