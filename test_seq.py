@@ -27,7 +27,7 @@ import argparse
 from data.data_ks_preprocess import bfs_dataset 
 from util.utils import is_main_process,read_args_txt
 
-from sequentialModel import SequentialModel as transformer
+from transformer.sequentialModel import SequentialModel as transformer
 from main_seq_ks import Args as Args_train_base 
 
 # Define a simple MSE loss function for evaluation
