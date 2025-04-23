@@ -370,11 +370,11 @@ class Args_eval:
     def __init__(self):
         self.parser = argparse.ArgumentParser(description='Evaluate Sequential Model')
         # Model/Training Args Location
-        self.parser.add_argument("--train_args_txt", type=str, required=True, help='Path to args.txt from training')
-        self.parser.add_argument("--model_path", type=str, required=True, help='Path to the trained model .pt file')
+        self.parser.add_argument("--train_args_txt", type=str, default='./output/ks_2025_04_20_18_06_37/logging', help='Path to args.txt from training')
+        self.parser.add_argument("--model_path", type=str,default=' ./output/ks_2025_04_20_18_06_37/model_save/final_model_Nt_2000.pt', help='Path to the trained model .pt file')
         # Data Args
         self.parser.add_argument("--data_location", type=str, default=['./data1.npy'], help='Directory containing evaluation data (e.g., .npy files)')
-        self.parser.add_argument("--file_name", type=str, default='data_test.npy', help='Name of the evaluation data file')
+        #self.parser.add_argument("--file_name", type=str, default='data_test.npy', help='Name of the evaluation data file')
         self.parser.add_argument("--trajec_max_len", type=int, default=151, help='Max sequence length in data')
         self.parser.add_argument("--start_n", type=int, default=64, help='Starting index for data loading')
         self.parser.add_argument("--n_span", type=int, default=151, help='Number of steps to load from start_n')
