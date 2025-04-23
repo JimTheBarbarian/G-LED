@@ -12,6 +12,17 @@ import torch.distributed as dist
 import sys
 from torch.utils.data import DataLoader as Dataloader
 
+
+# Get the absolute path to the project root
+ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+# Add paths to system path
+sys.path.append(ROOT_DIR)
+sys.path.append(os.path.join(ROOT_DIR, 'data'))
+sys.path.append(os.path.join(ROOT_DIR, 'util'))
+sys.path.append(os.path.join(ROOT_DIR, 'transformer'))
+
+
 import argparse
 sys.path.insert(0, '../util') # Adjust path if needed
 sys.path.insert(0, '../data') # Adjust path if needed
