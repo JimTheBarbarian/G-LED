@@ -8,7 +8,7 @@ import numpy as np
 import math
 import torch.nn.functional as F
 from packaging import version
-from spatialModel import MLP as MLPDense
+from transformer.spatialModel import MLP as MLPDense
 
 class MLP(nn.Module):
 	'''
