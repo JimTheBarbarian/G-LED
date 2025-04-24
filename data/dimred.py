@@ -93,7 +93,7 @@ def evaluate_pca_reconstruction_per_trajectory(data_loader, latent_dim):
         pcs,variances, mean_fft = pca_svd(trajectory_fft)
             
             # Center the data for projection/reconstruction
-        centered_trajectory_fft = trajectory - mean_fft
+        centered_trajectory_fft = trajectory_fft - mean_fft
 
             # 2. Project to latent space
 
