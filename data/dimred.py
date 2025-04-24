@@ -81,8 +81,8 @@ def evaluate_pca_reconstruction_per_trajectory(data_loader, latent_dim):
 
         if effective_latent_dim != latent_dim:
              print(f"[evaluate_pca] Warning: Reducing latent_dim from {latent_dim} to {effective_latent_dim} for trajectory {i} due to data shape {trajectory.shape}")
-             
-        print(f"[evaluate_pca] Processing trajectory {i} with shape {trajectory.shape}...")
+        if i == 0:
+            print(f"[evaluate_pca] Processing trajectory {i} with shape {trajectory.shape}...")
 
         # 1. Fit PCA using SVD
         pcs,variances, mean = pca_svd(trajectory)
@@ -100,10 +100,11 @@ def evaluate_pca_reconstruction_per_trajectory(data_loader, latent_dim):
             # 4. Calculate Complex MSE
         mse = complex_mse(trajectory, reconstructed_trajectory)
         all_mse.append(mse)
-        print(f"[evaluate_pca] Trajectory {i} MSE: {mse:.6f}")
+        if i % 100 == 0:
+            print(f"[evaluate_pca] Trajectory {i} MSE: {mse:.6f}")
 
-        mean_mse = np.mean(all_mse)
-        return mean_mse
+    mean_mse = np.mean(all_mse)
+    return mean_mse
 
 if __name__ == "__main__":
     # Example usage
