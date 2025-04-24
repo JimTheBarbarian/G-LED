@@ -6,6 +6,7 @@ import os
 import torch
 from data_ks_preprocess import bfs_dataset
 from torch.utils.data import DataLoader, Dataset
+from numpy.fft import rfft, irfft
 """ Utilities """
 
 
@@ -83,21 +84,29 @@ def evaluate_pca_reconstruction_per_trajectory(data_loader, latent_dim):
              print(f"[evaluate_pca] Warning: Reducing latent_dim from {latent_dim} to {effective_latent_dim} for trajectory {i} due to data shape {trajectory.shape}")
         if i == 0:
             print(f"[evaluate_pca] Processing trajectory {i} with shape {trajectory.shape}...")
+        
+        # 0. Apply FFT to the trajectory
+        trajectory_fft=  rfft(trajectory, axis=1)
+
 
         # 1. Fit PCA using SVD
-        pcs,variances, mean = pca_svd(trajectory)
+        pcs,variances, mean_fft = pca_svd(trajectory_fft)
             
             # Center the data for projection/reconstruction
-        centered_trajectory = trajectory - mean
+        centered_trajectory_fft = trajectory - mean_fft
 
             # 2. Project to latent space
 
-        projected_data = project_pca(centered_trajectory, pcs, effective_latent_dim)
+        projected_data_fft = project_pca(centered_trajectory_fft, pcs, effective_latent_dim)
 
             # 3. Reconstruct from latent space
-        reconstructed_trajectory = reconstruct_pca(projected_data, pcs, effective_latent_dim, mean)
+        reconstructed_trajectory_fft = reconstruct_pca(projected_data_fft, pcs, effective_latent_dim, mean_fft)
 
-            # 4. Calculate Complex MSE
+        # 4. Apply inverse FFT to the reconstructed data
+        reconstructed_trajectory = irfft(reconstructed_trajectory_fft, n = n_features, axis=1)
+
+
+            # 5. Calculate Complex MSE
         mse = complex_mse(trajectory, reconstructed_trajectory)
         all_mse.append(mse)
         if i % 100 == 0:
@@ -108,7 +117,7 @@ def evaluate_pca_reconstruction_per_trajectory(data_loader, latent_dim):
 
 if __name__ == "__main__":
     # Example usage
-    latent_dim = 16
+    latent_dim = 33
     #data_path = 'data/data1.npy'
     ks_dataset = bfs_dataset()
     data_loader = DataLoader(ks_dataset, batch_size=1, shuffle=False)
