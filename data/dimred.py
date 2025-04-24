@@ -110,7 +110,7 @@ if __name__ == "__main__":
     # Example usage
     latent_dim = 64
     #data_path = 'data/data1.npy'
-    ks_dataset = bfs_dataset(['data/data1.npy'])
+    ks_dataset = bfs_dataset()
     data_loader = DataLoader(ks_dataset, batch_size=1, shuffle=False)
 
     average_reconstruction_error = evaluate_pca_reconstruction_per_trajectory(data_loader, latent_dim)
