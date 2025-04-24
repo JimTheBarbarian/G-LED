@@ -8,7 +8,7 @@ from tqdm import tqdm
 
 class bfs_dataset(Dataset):
 	def __init__(self,
-				 data_location=['./data1.npy'],
+				 data_location=['data/data0.npy','data/data1.npy'],
 				 trajec_max_len=50,
 				 start_n=0,
 				 #num_trajs=1,
@@ -21,10 +21,10 @@ class bfs_dataset(Dataset):
 		self.start_n = start_n
 		self.trajec_max_len = trajec_max_len
 
-		#solution1 = np.load(data_location[1],allow_pickle = True)
-		#solution  = np.concatenate([solution0,
-		#							solution1],axis = 0)
-		self.solution = torch.from_numpy(solution0)
+		solution1 = np.load(data_location[1],allow_pickle = True)
+		solution  = np.concatenate([solution0,
+									solution1],axis = 0)
+		self.solution = torch.from_numpy(solution)
 		self.flag = flag
 		val_index = int(len(self.solution) * val_split)
 		test_index = int(len(self.solution) * test_split)

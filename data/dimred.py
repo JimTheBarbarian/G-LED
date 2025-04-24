@@ -4,6 +4,8 @@ import time
 import os
 """ Torch """
 import torch
+from data_ks_preprocess import bfs_data
+from torch.utils.data import DataLoader, Dataset
 """ Utilities """
 
 
@@ -12,8 +14,111 @@ from functools import partial
 print = partial(print, flush=True)
 import warnings
 
+def pca_svd(X):
+    """ Perform PCA using SVD"""
+    X = np.asarray(X)
+    n_samples, n_features = X.shape
+
+    # Center the data
+    mean = np.mean(X, axis=0)
+    center = X-mean
+
+    U,s,Vh = np.linalg.svd(center/np.sqrt(n_samples), full_matrices=False)
 
 
+    variances = s**2
+    pcs = Vh
+
+    return pcs, variances, mean
+
+def project_pca(X_centered, pcs, latent_dim):
+    """Projects centered data onto the top principal components."""
+    pcs_reduced = pcs[:latent_dim, :] # Take top 'latent_dim' components
+    # Project: (n_samples, n_features) @ (n_features, latent_dim) -> (n_samples, latent_dim)
+    projected = X_centered @ pcs_reduced.T # Note the transpose
+    return projected
+
+
+def reconstruct_pca(projected_data, pcs, latent_dim, mean):
+    """Reconstructs data from the projected representation."""
+    pcs_reduced = pcs[:latent_dim, :] # Take top 'latent_dim' components
+    # Reconstruct: (n_samples, latent_dim) @ (latent_dim, n_features) -> (n_samples, n_features)
+    reconstructed_centered = projected_data @ pcs_reduced
+    reconstructed = reconstructed_centered + mean # Add mean back
+    return reconstructed
+
+
+def complex_mse(y_true, y_pred):
+    """Calculates Mean Squared Error for complex numbers."""
+    return np.mean(np.abs(y_true - y_pred)**2)
+
+def evaluate_pca_reconstruction_per_trajectory(data_loader, latent_dim):
+    """
+    Evaluates PCA reconstruction error using SVD for complex data, 
+    fitting PCA to each trajectory individually.
+
+    Args:
+        data_loader: An iterable that yields individual trajectories. 
+                     Each trajectory should be a NumPy array of shape [time_step, spatial_dimension].
+        latent_dim: The number of principal components (latent dimension) to use for PCA.
+
+    Returns:
+        float: The mean squared error averaged over all trajectories in the data_loader.
+    """
+    all_mse = []
+    print(f"[evaluate_pca] Starting evaluation with latent_dim = {latent_dim}")
+
+    for i, trajectory in enumerate(data_loader):
+        # Ensure trajectory is a NumPy array
+        trajectory = np.asarray(trajectory) 
+            
+        if trajectory.ndim != 2:
+            print(f"[evaluate_pca] Warning: Skipping trajectory {i} due to unexpected shape {trajectory.shape}")
+            continue
+            
+        n_samples, n_features = trajectory.shape
+        effective_latent_dim = min(latent_dim, n_samples, n_features) # Cannot have more components than samples or features
+
+        if effective_latent_dim != latent_dim:
+             print(f"[evaluate_pca] Warning: Reducing latent_dim from {latent_dim} to {effective_latent_dim} for trajectory {i} due to data shape {trajectory.shape}")
+             
+        print(f"[evaluate_pca] Processing trajectory {i} with shape {trajectory.shape}...")
+
+        # 1. Fit PCA using SVD
+        variances, pcs, mean = pca_svd(trajectory)
+            
+            # Center the data for projection/reconstruction
+        centered_trajectory = trajectory - mean
+
+            # 2. Project to latent space
+
+        projected_data = project_pca(centered_trajectory, pcs, effective_latent_dim)
+
+            # 3. Reconstruct from latent space
+        reconstructed_trajectory = reconstruct_pca(projected_data, pcs, effective_latent_dim, mean)
+
+            # 4. Calculate Complex MSE
+        mse = complex_mse(trajectory, reconstructed_trajectory)
+        all_mse.append(mse)
+        print(f"[evaluate_pca] Trajectory {i} MSE: {mse:.6f}")
+
+        mean_mse = np.mean(all_mse)
+        return mean_mse
+
+if __name__ == "__main__":
+    # Example usage
+    latent_dim = 8
+    data_path = 'data/data1.npy'
+    ks_dataset = bfs_data(data_path)
+    data_loader = DataLoader(ks_dataset, batch_size=1, shuffle=False)
+
+    average_reconstruction_error = evaluate_pca_reconstruction_per_trajectory(data_loader, latent_dim)
+    print(f"Average reconstruction error for latent dimension {latent_dim}: {average_reconstruction_error:.6f}")
+
+
+
+
+'''
 class dimred():
     def __init__(self, params):
         super(dimred, self).__init__()
@@ -25,7 +130,6 @@ class dimred():
         # The system to which the model is applied on
         self.system_name = params["system_name"]
         # Checking the system name
-        assert (systems.checkSystemName(self))
         # The save format
         self.save_format = params["save_format"]
 
@@ -68,8 +172,8 @@ class dimred():
 
         self.input_dim = params['input_dim']
 
-        self.channels = params['channels']
-        self.Dz, self.Dy, self.Dx = utils.getChannels(self.channels, params)
+        #self.channels = params['channels']
+        #self.Dz, self.Dy, self.Dx = utils.getChannels(self.channels, params)
 
         ##################################################################
         # SCALER
@@ -109,7 +213,7 @@ class dimred():
     
 
     def applyDimRed(self):
-        assert len(np.shape(data)) == 2 + 1 + self.channels
+        #assert len(np.shape(data)) == 2 + 1 + self.channels
         shape_ = np.shape(data)
         data = np.reshape(data, (shape_[0]*shape_[1], -1))
         data = self.dimred_model.transform(data)
@@ -160,4 +264,82 @@ class dimred():
 
     def saveDimRed(self):
         model_name_dimred = self.getModelName()
-        
+        print(
+            "[dimred] Saving dimensionality reduction results with name: {:}".
+            format(model_name_dimred))
+
+        print("[dimred] Recording time...")
+        self.total_training_time = time.time() - self.start_time
+
+        print("[dimred] Total training time is {:}".format(
+            utils.secondsToTimeStr(self.total_training_time)))
+
+        self.memory = utils.getMemory()
+        print("[dimred] Script used {:} MB".format(self.memory))
+
+        data = {
+            "params": self.params,
+            "model_name": self.model_name,
+            "memory": self.memory,
+            "total_training_time": self.total_training_time,
+            "dimred_model": self.dimred_model,
+        }
+        fields_to_write = [
+            "memory",
+            "total_training_time",
+        ]
+        if self.write_to_log == 1:
+            logfile_train = self.saving_path + self.logfile_dir + model_name_dimred + "/train.txt"
+            print("[dimred] Writing to log-file in path {:}".format(
+                logfile_train))
+            utils.write_to_logfile(self, logfile_train, data, fields_to_write)
+
+        data_folder = self.saving_path + self.model_dir + model_name_dimred
+        os.makedirs(data_folder, exist_ok=True)
+        data_path = data_folder + "/data"
+        utils.saveData(data, data_path, self.params["save_format"])
+
+    def load(self):
+        model_name_dimred = self.createModelName()
+        print(
+            "[dimred] Loading dimensionality reduction from model: {:}".format(
+                model_name_dimred))
+        data_path = self.saving_path + self.model_dir + model_name_dimred + "/data"
+        print("[dimred] Datafile: {:}".format(data_path))
+        try:
+            data = utils.loadData(data_path, self.params["save_format"])
+        except Exception as inst:
+            raise ValueError(
+                "[Error] Dimensionality reduction results {:s} not found.".
+                format(data_path))
+        self.dimred_model = data["dimred_model"]
+        del data
+        return 0
+
+    def test(self):
+        if self.load() == 0:
+            testing_modes = self.getTestingModes()
+            test_on = []
+            if self.params["test_on_test"]: test_on.append("test")
+            if self.params["test_on_val"]: test_on.append("val")
+            if self.params["test_on_train"]: test_on.append("train")
+            for set_ in test_on:
+                common_testing.testModesOnSet(self,
+                                              set_=set_,
+                                              testing_modes=testing_modes)
+        return 0
+
+    def getTestingModes(self):
+        return ["dimred_testing"]
+
+    def plot(self):
+        if self.write_to_log:
+            common_plot.writeLogfiles(self, testing_mode="dimred_testing")
+        else:
+            print("[dimred] # write_to_log=0. #")
+
+        if self.params["plotting"]:
+            common_plot.plot(self, testing_mode="dimred_testing")
+        else:
+            print("[dimred] # plotting=0. No plotting. #")
+        '''
