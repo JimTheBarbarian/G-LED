@@ -344,7 +344,7 @@ def eval_seq_overall(args_train,
 					 model, 
 					 data_loader, 
 					 loss_func):
-	down_sampler = torch.nn.Upsample(size=args_train.coarse_dim, 
+	down_sampler = torch.nn.Upsample(size=(1,args_train.coarse_dim), 
 								     mode=args_train.coarse_mode)
 	Nt = args_sample.test_Nt
 	warm_start_len = args_sample.start_n
@@ -390,7 +390,7 @@ class Args_eval:
         self.parser.add_argument("--n_span", type=int, default=151, help='Number of steps to load from start_n')
         # Evaluation Params
         self.parser.add_argument("--test_Nt", type=int, default=321, help='Number of steps to predict forward')
-        self.parser.add_argument("--batch_size", type=int, default=1, help='Batch size for evaluation')
+        self.parser.add_argument("--batch_size", type=int, default=16, help='Batch size for evaluation')
         self.parser.add_argument("--device", type=str, default='cuda:0' if torch.cuda.is_available() else 'cpu', help='Device for evaluation (e.g., cuda:0 or cpu)')
         self.parser.add_argument("--experiment_path", type=str, default='./eval_output', help='Directory to save evaluation outputs (like plots)')
 
