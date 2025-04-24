@@ -85,7 +85,7 @@ def evaluate_pca_reconstruction_per_trajectory(data_loader, latent_dim):
         print(f"[evaluate_pca] Processing trajectory {i} with shape {trajectory.shape}...")
 
         # 1. Fit PCA using SVD
-        variances, pcs, mean = pca_svd(trajectory)
+        pcs,variances, mean = pca_svd(trajectory)
             
             # Center the data for projection/reconstruction
         centered_trajectory = trajectory - mean
