@@ -12,8 +12,8 @@ class bfs_dataset(Dataset):
 				 trajec_max_len=50,
 				 start_n=0,
 				 #num_trajs=1,
-				 val_start=9000,
-				 test_start=9500,
+				 val_split=.9,
+				 test_split=.95,
 				 flag = 'train'):
 		#assert n_span > trajec_max_len
 		solution0 = np.load(data_location[0],allow_pickle = True)
@@ -26,12 +26,14 @@ class bfs_dataset(Dataset):
 		#							solution1],axis = 0)
 		self.solution = torch.from_numpy(solution0)
 		self.flag = flag
+		val_index = int(len(self.solution) * val_split)
+		test_index = int(len(self.solution) * test_split)
 		if flag == 'train':
-			self.solution = self.solution[:val_start]
+			self.solution = self.solution[:val_index]
 		elif flag == 'val':
-			self.solution = self.solution[val_start:test_start]
+			self.solution = self.solution[val_index:test_index]
 		elif flag == 'test':
-			self.solution = self.solution[test_start:]
+			self.solution = self.solution[test_index:]
 		self.num_trajs = self.solution.shape[0]
 		self.n_span = self.solution.shape[1]
 		self.trajec_max_len = trajec_max_len
