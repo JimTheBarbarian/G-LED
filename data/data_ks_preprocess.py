@@ -39,10 +39,11 @@ class bfs_dataset(Dataset):
 		return self.num_trajs
 		
 	def __getitem__(self, index):
-		if self.flag == 'test':
-			return self.solution[index,:self.start_n]
-		else:
-			return self.solution[index]
+		return self.solution[index]
+		#if self.flag == 'test':
+		#	return self.solution[index,:self.start_n]
+		#else:
+		#	return self.solution[index]
 
 
 if __name__ == '__main__':
