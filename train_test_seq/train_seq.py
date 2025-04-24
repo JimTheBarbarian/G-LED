@@ -1,7 +1,7 @@
 import pdb
 import torch
 from tqdm import tqdm
-#from test_seq import test_epoch
+from test_seq import test_epoch
 import os
 import time
 import sys
@@ -33,8 +33,9 @@ def train_seq_shift(args,
 
 			if is_main_process():
 				print('Start epoch '+ str(epoch)+' at Nt ', Nt)
-				'''
-				max_mre,min_mre, mean_mre, sigma3 = test_epoch(args=args,
+				if epoch % 100 == 0:
+				
+					max_mre,min_mre, mean_mre, sigma3 = test_epoch(args=args,
 														   model=model, 
 														   data_loader=data_loader_valid,
 														   loss_func=loss_func,
@@ -47,14 +48,14 @@ def train_seq_shift(args,
 			
 				
 
-				print('#### max  re train####=',max_mre)
-				print('#### mean re train####=',mean_mre)
-				print('#### min  re train####=',min_mre)
-				print('#### 3 sigma train ####=',sigma3)
-				if (max_mre < args.march_tol) or (mean_mre < args.march_tol*0.1):
-					march_nt_decision[0] = True
-					save_model(model, args, Nt, bestModel = True)
-				'''
+					print('#### max  re train####=',max_mre)
+					print('#### mean re train####=',mean_mre)
+					print('#### min  re train####=',min_mre)
+					print('#### 3 sigma train ####=',sigma3)
+					if (max_mre < args.march_tol) or (mean_mre < args.march_tol*0.1):
+						march_nt_decision[0] = True
+						save_model(model, args, Nt, bestModel = True)
+				
 			Nt += args.d_Nt
 		#if args.distributed and epoch > 0:
 		#	dist.broadcast_object_list(march_nt_decision,src=0)
