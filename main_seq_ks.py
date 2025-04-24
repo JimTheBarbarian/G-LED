@@ -33,7 +33,7 @@ class Args:
                                  default='ks',
                                  help='name it')
         self.parser.add_argument("--data_location", 
-                                 default = ['/data/data0.npy','/data/data1.npy'],
+                                 default = ['./data/data0.npy','./data/data1.npy'],
                                  help='the relative or abosolute data.npy file')
         self.parser.add_argument("--trajec_max_len", 
                                  default=319,
