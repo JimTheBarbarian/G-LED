@@ -70,7 +70,7 @@ def evaluate_pca_reconstruction_per_trajectory(data_loader, latent_dim):
 
     for i, trajectory in enumerate(data_loader):
         # Ensure trajectory is a NumPy array
-        trajectory = np.asarray(trajectory) 
+        trajectory = np.asarray(trajectory).squeeze()
             
         if trajectory.ndim != 2:
             print(f"[evaluate_pca] Warning: Skipping trajectory {i} due to unexpected shape {trajectory.shape}")
