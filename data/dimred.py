@@ -108,8 +108,8 @@ def evaluate_pca_reconstruction_per_trajectory(data_loader, latent_dim):
 if __name__ == "__main__":
     # Example usage
     latent_dim = 8
-    data_path = 'data/data1.npy'
-    ks_dataset = bfs_data(data_path)
+    #data_path = 'data/data1.npy'
+    ks_dataset = bfs_data()
     data_loader = DataLoader(ks_dataset, batch_size=1, shuffle=False)
 
     average_reconstruction_error = evaluate_pca_reconstruction_per_trajectory(data_loader, latent_dim)
