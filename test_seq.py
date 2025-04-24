@@ -356,7 +356,8 @@ def eval_seq_overall(args_train,
 												   Nt=Nt,
 												   warm_start_len=warm_start_len,
 												   down_sampler=down_sampler,
-												   ite_thold = None)
+												   ite_thold = None,
+												   device = args_sample.device)
 	print('#### max mre test####=',max_mre)
 	print('#### mean mre test####=',mean_mre)
 	print('#### min mre test####=',min_mre)
