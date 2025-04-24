@@ -66,6 +66,7 @@ def test_epoch(args,
 				if iteration>ite_thold:
 					break
 			batch = batch.to(device).float()
+			print(batch.shape)
 			#batch = batch.float()
 			b_size = batch.shape[0]
 			num_time_total = batch.shape[1]
