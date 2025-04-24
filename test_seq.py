@@ -117,6 +117,7 @@ def test_epoch(args,
 			REs.append(r_er.item()) # Append scalar relative error for this batch
 
         # +++ Gather results if distributed
+		'''
 		all_REs = []
 		if distributed:
             # Ensure all processes reach this point
@@ -133,13 +134,15 @@ def test_epoch(args,
 		if is_main_process():
 			if not all_REs: # Handle case with no results
 				return 0.0, 0.0, 0.0, 0.0 
+		'''
 	
-			REs_np = np.array(all_REs)
-			max_mre = np.max(REs_np)
-			min_mre = np.min(REs_np)
-			mean_mre = np.mean(REs_np)
-			sigma3 = np.std(REs_np) * 3
-			return max_mre, min_mre, mean_mre, sigma3
+		
+		REs_np = np.array(REs)
+		max_mre = np.max(REs_np)
+		min_mre = np.min(REs_np)
+		mean_mre = np.mean(REs_np)
+		sigma3 = np.std(REs_np) * 3
+		return max_mre, min_mre, mean_mre, sigma3
 
 
 
