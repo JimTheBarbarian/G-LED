@@ -4,7 +4,7 @@ import time
 import os
 """ Torch """
 import torch
-from data_ks_preprocess import bfs_data
+from data_ks_preprocess import bfs_dataset
 from torch.utils.data import DataLoader, Dataset
 """ Utilities """
 
@@ -109,7 +109,7 @@ if __name__ == "__main__":
     # Example usage
     latent_dim = 8
     #data_path = 'data/data1.npy'
-    ks_dataset = bfs_data()
+    ks_dataset = bfs_dataset()
     data_loader = DataLoader(ks_dataset, batch_size=1, shuffle=False)
 
     average_reconstruction_error = evaluate_pca_reconstruction_per_trajectory(data_loader, latent_dim)
