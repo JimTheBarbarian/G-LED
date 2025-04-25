@@ -20,7 +20,7 @@ from data_ks_preprocess import bfs_dataset
 sys.path.insert(0, './transformer')
 from sequentialModel import SequentialModel as transformer
 sys.path.insert(0, './train_test_seq')
-from train_seq import train_seq_shift
+#from train_seq import train_seq_shift
 import time
 
 class Args:
