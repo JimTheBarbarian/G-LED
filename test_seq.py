@@ -83,7 +83,7 @@ def test_epoch(args,
 			warm_start_coarse = batch_coarse_flatten[:,warm_start_len:,:]
 			past = None
 			xn = warm_start_coarse[:,0:1,:]
-
+			previous_len = warm_start_len
 			#for k in range(warm_start_len-1):
 			#	if past is not None and past[0][0].shape[2] >= args.n_ctx:
 			#		past_trimmed = [[past[l][0][:,:,IDHistory,:], past[l][1][:,:,IDHistory,:]] for l in range(args.n_layer)]
@@ -105,16 +105,24 @@ def test_epoch(args,
 				mem.append(xn)
 			mem=torch.cat(mem,dim=1)
 
+			local_batch_size = mem.shape[0]
+			for i in tqdm(range(local_batch_size)):
+				er = loss_func(mem[i:i+1],
+							   batch_coarse_flatten[i:i+1,previous_len:previous_len+Nt,:])
+				r_er = er/loss_func(mem[i:i+1]*0,
+									batch_coarse_flatten[i:i+1,previous_len:previous_len+Nt,:])
+				REs.append(r_er.item())
+
 			# Calculate loss for the local batch
             # +++ Vectorize loss calculation if possible
-			target = batch_coarse_flatten[:,warm_start_len:warm_start_len+Nt,:]	
-			er = loss_func(mem, target)
+			#target = batch_coarse_flatten[:,warm_start_len:warm_start_len+Nt,:]	
+			#er = loss_func(mem, target)
             # Avoid division by zero if target norm is zero
-			target_norm_sq = loss_func(target*0, target)
-			r_er = er / target_norm_sq if target_norm_sq > 1e-9 else torch.tensor(0.0, device=device)
+			#target_norm_sq = loss_func(target*0, target)
+			#r_er = er / target_norm_sq if target_norm_sq > 1e-9 else torch.tensor(0.0, device=device)
             
             # +++ Store the single relative error for the batch (or average if needed)
-			REs.append(r_er.item()) # Append scalar relative error for this batch
+			#REs.append(r_er.item()) # Append scalar relative error for this batch
 
         # +++ Gather results if distributed
 		'''
