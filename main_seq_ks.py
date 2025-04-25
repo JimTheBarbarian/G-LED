@@ -123,7 +123,7 @@ class Args:
                                  default = 4000,
                                  help='epoch_num')
         self.parser.add_argument("--learning_rate", 
-                                 default = 1e-4,
+                                 default = 3e-5,
                                  help='learning rate')
         self.parser.add_argument("--gamma",
                                  default=0.99083194489,
