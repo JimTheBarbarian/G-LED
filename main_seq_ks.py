@@ -51,10 +51,10 @@ class Args:
                                  default=384,
                                  help = 'max seq_length (per seq) to valid the model')
         self.parser.add_argument("--start_n_valid", 
-                                 default=320,
+                                 default=64,
                                  help = 'the starting step of the data')
         self.parser.add_argument("--n_span_valid",
-                                 default=64,
+                                 default=321,
                                  help='the total step of the data from the staring step')
                
 

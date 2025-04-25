@@ -22,6 +22,8 @@ def train_seq_shift(args,
 	down_sampler = torch.nn.Upsample(size=(1,args.coarse_dim), 
 								     mode=args.coarse_mode).to(args.device)
 	Nt = args.start_Nt
+	valid_Nt = args.n_span_valid
+	warm_start_len = args.start_n_valid
 	for epoch in tqdm(range(args.epoch_num), disable=not is_main_process()):
 		tic = time.time()
 		if args.distributed and sampler_train is not None:
@@ -39,7 +41,8 @@ def train_seq_shift(args,
 														   model=model, 
 														   data_loader=data_loader_valid,
 														   loss_func=loss_func,
-														   Nt=Nt,
+														   Nt=valid_Nt,
+														   warm_start_len = warm_start_len,
 														   down_sampler=down_sampler,
 														   ite_thold = 5,
 														   device = args.device,
