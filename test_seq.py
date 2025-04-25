@@ -84,13 +84,13 @@ def test_epoch(args,
 			past = None
 			xn = warm_start_coarse[:,0:1,:]
 			previous_len = warm_start_len
-			#for k in range(warm_start_len-1):
-			#	if past is not None and past[0][0].shape[2] >= args.n_ctx:
-			#		past_trimmed = [[past[l][0][:,:,IDHistory,:], past[l][1][:,:,IDHistory,:]] for l in range(args.n_layer)]
-			#	else: 
-			#		past_trimmed = past
-			#	_, past, _, _, = eval_model(inputs_embeds = xn, past=past_trimmed)
-			#	xn = warm_start_coarse[:,k+1:k+2,:]
+			for k in range(warm_start_len-1):
+				if past is not None and past[0][0].shape[2] >= args.n_ctx:
+					past_trimmed = [[past[l][0][:,:,IDHistory,:], past[l][1][:,:,IDHistory,:]] for l in range(args.n_layer)]
+				else: 
+					past_trimmed = past
+				_, past, _, _, = eval_model(inputs_embeds = xn, past=past_trimmed)
+				xn = warm_start_coarse[:,k+1:k+2,:]
 			
 			mem = []
 			for j in (range(Nt)):
@@ -401,7 +401,7 @@ class Args_eval:
         self.parser.add_argument("--n_span", type=int, default=151, help='Number of steps to load from start_n')
         # Evaluation Params
         self.parser.add_argument("--test_Nt", type=int, default=321, help='Number of steps to predict forward')
-        self.parser.add_argument("--batch_size", type=int, default=16, help='Batch size for evaluation')
+        self.parser.add_argument("--batch_size", type=int, default=32, help='Batch size for evaluation')
         self.parser.add_argument("--device", type=str, default='cuda:0' if torch.cuda.is_available() else 'cpu', help='Device for evaluation (e.g., cuda:0 or cpu)')
         self.parser.add_argument("--experiment_path", type=str, default='./eval_output', help='Directory to save evaluation outputs (like plots)')
 
