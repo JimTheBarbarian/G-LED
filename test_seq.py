@@ -80,17 +80,17 @@ def test_epoch(args,
 														 args.coarse_dim])
 			
 
-			warm_start_coarse = batch_coarse_flatten[:,:warm_start_len,:]
+			warm_start_coarse = batch_coarse_flatten[:,warm_start_len:,:]
 			past = None
 			xn = warm_start_coarse[:,0:1,:]
 
-			for k in range(warm_start_len-1):
-				if past is not None and past[0][0].shape[2] >= args.n_ctx:
-					past_trimmed = [[past[l][0][:,:,IDHistory,:], past[l][1][:,:,IDHistory,:]] for l in range(args.n_layer)]
-				else: 
-					past_trimmed = past
-				_, past, _, _, = eval_model(inputs_embeds = xn, past=past_trimmed)
-				xn = warm_start_coarse[:,k+1:k+2,:]
+			#for k in range(warm_start_len-1):
+			#	if past is not None and past[0][0].shape[2] >= args.n_ctx:
+			#		past_trimmed = [[past[l][0][:,:,IDHistory,:], past[l][1][:,:,IDHistory,:]] for l in range(args.n_layer)]
+			#	else: 
+			#		past_trimmed = past
+			#	_, past, _, _, = eval_model(inputs_embeds = xn, past=past_trimmed)
+			#	xn = warm_start_coarse[:,k+1:k+2,:]
 			
 			mem = []
 			for j in (range(Nt)):
