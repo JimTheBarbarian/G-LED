@@ -196,9 +196,7 @@ if __name__ == '__main__':
 	train_diff(diff_args=diff_args,
                seq_args=seq_args,
                trainer=trainer,
-               data_loader=data_loader,
-			   sampler=sampler,
-			   distributed = diff_args.distributed)
+               data_loader=data_loader)
 	
 	if diff_args.distributed:
 		dist.destroy_process_group()
