@@ -1080,7 +1080,7 @@ class Unet(nn.Module):
         *,
         dim,
         image_embed_dim = 1024,
-        text_embed_dim = get_encoded_dim(DEFAULT_T5_NAME),
+        #text_embed_dim = get_encoded_dim(DEFAULT_T5_NAME),
         num_resnet_blocks = 1,
         cond_dim = None,
         num_image_tokens = 4,
@@ -1222,9 +1222,9 @@ class Unet(nn.Module):
 
         self.text_to_cond = None
 
-        if cond_on_text:
-            assert exists(text_embed_dim), 'text_embed_dim must be given to the unet if cond_on_text is True'
-            self.text_to_cond = nn.Linear(text_embed_dim, cond_dim)
+        #if cond_on_text:
+        #    assert exists(text_embed_dim), 'text_embed_dim must be given to the unet if cond_on_text is True'
+        #    self.text_to_cond = nn.Linear(text_embed_dim, cond_dim)
 
         # finer control over whether to condition on text encodings
 
