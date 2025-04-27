@@ -448,17 +448,18 @@ class ImagenTrainer(nn.Module):
 
     def wrap_unet(self, unet_number):
         if hasattr(self, 'one_unet_wrapped'):
-            unet = self.imagen.get_unet(unet_number).to(self.device)
-            if self.use_ddp:
-                self.unet_being_trained_ddp = DDP(unet,device_ids=[self.device], output_device=self.device, find_unused_parameters=True)
-            else:
-                self.unet_being_trained_ddp = unet
             return
+        unet = self.imagen.get_unet(unet_number).to(self.device)
+        if self.use_ddp:
+            self.unet_being_trained_ddp = DDP(unet,device_ids=[self.device], output_device=self.device, find_unused_parameters=True)
+        else:
+            self.unet_being_trained_ddp = unet
+            
         unet = self.imagen.get_unet(unet_number).to(self.device)
         unet_index = unet_number - 1
 
         model_to_optimize = self.unet_being_trained_ddp
-        lr, eps, beta1, beta2 = 1e-4, 1e-8, 0.9, 0.99
+        lr, eps, beta1, beta2 = 1e-4, 1e-8, 0.9, 0.99 # bad hack TODO: get this from config
         optimizer= Adam(
             model_to_optimize.parameters(),
             lr = lr,
@@ -998,7 +999,7 @@ class ImagenTrainer(nn.Module):
         #        loss = self.imagen(*chunked_args, unet = self.unet_being_trained, unet_number = unet_number, **chunked_kwargs)
         #        loss = loss * chunk_size_frac
 
-        with autocast(enabled = self.grad_scaler_enabled):
+        with autocast(enabled = self.grad_scaler):
             loss = self.imagen(*args, unet = self.unet_being_trained, unet_number = unet_number, **kwargs)
         total_loss += loss.item()
 
