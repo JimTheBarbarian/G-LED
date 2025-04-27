@@ -190,8 +190,8 @@ if __name__ == '__main__':
 		#condition_on_text = False,
 		auto_normalize_img = False  # Han Gao make it false
 		).to(device)
-	if diff_args.distributed:
-		imagen = DDP(imagen, device_ids=[diff_args.local_rank], output_device=diff_args.local_rank)
+	#if diff_args.distributed:
+		#imagen = DDP(imagen, device_ids=[diff_args.local_rank], output_device=diff_args.local_rank)
 	trainer = ImagenTrainer(imagen, device =device, distributed=diff_args.distributed)
 	train_diff(diff_args=diff_args,
                seq_args=seq_args,
