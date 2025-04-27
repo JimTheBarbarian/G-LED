@@ -116,7 +116,7 @@ def cast_torch_tensor(fn, cast_fp16 = False):
         device = kwargs.pop('_device', model.device)
         cast_device = kwargs.pop('_cast_device', True)
 
-        should_cast_fp16 = cast_fp16 and model.cast_half_at_training
+        should_cast_fp16 = cast_fp16 and model.grad_scaler_enabled
 
         kwargs_keys = kwargs.keys()
         all_args = (*args, *kwargs.values())
@@ -998,7 +998,7 @@ class ImagenTrainer(nn.Module):
         #        loss = self.imagen(*chunked_args, unet = self.unet_being_trained, unet_number = unet_number, **chunked_kwargs)
         #        loss = loss * chunk_size_frac
 
-        with autocast(enabled = self.cast_half_at_training):
+        with autocast(enabled = self.grad_scaler_enabled):
             loss = self.imagen(*args, unet = self.unet_being_trained, unet_number = unet_number, **kwargs)
         total_loss += loss.item()
 
