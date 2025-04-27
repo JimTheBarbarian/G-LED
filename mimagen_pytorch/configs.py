@@ -3,9 +3,9 @@ from pydantic import BaseModel, validator, root_validator
 from typing import List, Iterable, Optional, Union, Tuple, Dict, Any
 from enum import Enum
 
-from imagen_pytorch.imagen_pytorch import Imagen, Unet, Unet3D, NullUnet
-from imagen_pytorch.trainer import ImagenTrainer
-from imagen_pytorch.elucidated_imagen import ElucidatedImagen
+from mimagen_pytorch.imagen_pytorch import Imagen, Unet, Unet3D, NullUnet
+from mimagen_pytorch.trainer import ImagenTrainer
+from mimagen_pytorch.elucidated_imagen import ElucidatedImagen
 #from imagen_pytorch.t5 import DEFAULT_T5_NAME, get_encoded_dim
 
 # helper functions
