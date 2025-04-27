@@ -452,6 +452,7 @@ class ImagenTrainer(nn.Module):
         unet = self.imagen.get_unet(unet_number).to(self.device)
         if self.use_ddp:
             self.unet_being_trained_ddp = DDP(unet,device_ids=[self.device], output_device=self.device, find_unused_parameters=True)
+
         else:
             self.unet_being_trained_ddp = unet
             
@@ -702,7 +703,7 @@ class ImagenTrainer(nn.Module):
 
         self.reset_ema_unets_all_one_device()
 
-        model_state_dict = self.imagen.module.state_dict() if self.use_ddp else self.imagen.state_dict()
+        model_state_dict = self.imagen.state_dict() if self.use_ddp else self.imagen.state_dict()
 
         save_obj = dict(
             model = model_state_dict,
