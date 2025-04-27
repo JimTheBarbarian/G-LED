@@ -12,7 +12,7 @@ class bfs_dataset(Dataset):
 				 trajec_max_len=50,
 				 start_n=0,
 				 #num_trajs=1,
-				 val_split=.9,
+				 val_split=.01,
 				 test_split=.95,
 				 flag = 'train'):
 		#assert n_span > trajec_max_len
