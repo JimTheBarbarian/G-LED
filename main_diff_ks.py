@@ -167,7 +167,7 @@ if __name__ == '__main__':
 				   cond_images_channels=1, 
 				   memory_efficient=True, 
 				   dim_mults=(1, 2, 4, 8)).to(device)  #mid: mid channel
-	image_sizes = (1)
+	image_sizes = (320)
 	image_width = (64)
 	imagen = ElucidatedImagen(
 		unets = (unet1),
