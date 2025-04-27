@@ -281,6 +281,10 @@ class ImagenTrainer(nn.Module):
             fs_kwargs = default(fs_kwargs, {})
             self.fs, _ = url_to_fs(default(checkpoint_path, './'), **fs_kwargs)
 
+        if self.use_ddp:
+            if dist.is_initialized() and dist.is_available:
+                self.world_size = dist.get_world_size()
+                self.rank = dist.get_rank()
         assert isinstance(imagen, (Imagen, ElucidatedImagen))
         ema_kwargs, kwargs = groupby_prefix_and_trim('ema_', kwargs)
 
