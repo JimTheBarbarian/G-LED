@@ -44,8 +44,9 @@ def train_epoch(diff_args,seq_args, trainer, data_loader,down_sampler,up_sampler
 		batch_coarse      = down_sampler(batch.reshape([bsize*ntime,1,1,64]))
 		batch_coarse2fine = up_sampler(batch_coarse).reshape([bsize,1,1,ntime,64])
 		cond_images = batch_coarse2fine.permute(0,2,1,3,4)
-		images = batch.unsqueeze(1).unsqueeze(3)
+		images = batch.unsqueeze(1).unsqueeze(3) # shape B x 1 x ntime x 1 x 64
 		#need # B x F x T x H x W
+		images = images.permute(0,1,3,2,4) # B x 1 x 1 x ntime x 64
 		#batch= batch.permute([0,2,1,3,4])
 		#batch_coarse2fine = batch_coarse2fine.permute([0,2,1,3,4])
 		#print(batch.device)
