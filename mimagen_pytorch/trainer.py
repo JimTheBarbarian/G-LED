@@ -999,7 +999,7 @@ class ImagenTrainer(nn.Module):
         #        loss = self.imagen(*chunked_args, unet = self.unet_being_trained, unet_number = unet_number, **chunked_kwargs)
         #        loss = loss * chunk_size_frac
 
-        with autocast(enabled = self.grad_scaler):
+        with autocast(enabled = self.grad_scaler_enabled):
             loss = self.imagen(*args, unet = self.unet_being_trained, unet_number = unet_number, **kwargs)
         total_loss += loss.item()
 
