@@ -11,11 +11,11 @@ from torch.nn.utils.rnn import pad_sequence
 
 from PIL import Image
 
-from datasets.utils.file_utils import get_datasets_user_agent
+#from datasets.utils.file_utils import get_datasets_user_agent
 import io
 import urllib
 
-USER_AGENT = get_datasets_user_agent()
+#USER_AGENT = get_datasets_user_agent()
 
 # helpers functions
 
