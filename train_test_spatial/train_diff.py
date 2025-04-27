@@ -37,11 +37,12 @@ def train_epoch(diff_args,seq_args, trainer, data_loader,down_sampler,up_sampler
 	loss_epoch = []
 	print('Iteration is ', len(data_loader))
 	for iteration, batch in tqdm(enumerate(data_loader)):
+		batch = batch[:,65:,:] # only predicting after the warmup
 		batch = batch.to(diff_args.device).float()
 		bsize = batch.shape[0]
 		ntime = batch.shape[1] 
 		batch_coarse      = down_sampler(batch.reshape([bsize*ntime,1,1,64]))
-		batch_coarse2fine = up_sampler(batch_coarse).reshape([bsize,ntime,1,1,64])
+		batch_coarse2fine = up_sampler(batch_coarse).reshape([bsize,1,1,ntime,64])
 		cond_images = batch_coarse2fine.permute(0,2,1,3,4)
 		images = batch.unsqueeze(1).unsqueeze(3)
 		#need # B x F x T x H x W
