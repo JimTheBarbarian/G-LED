@@ -226,6 +226,18 @@ def restore_parts(state_dict_target, state_dict_from):
 class ImagenTrainer(nn.Module):
     locked = False
 
+    @property
+    def is_distributed(self):
+        return self.use_ddp and dist.is_initialized() and self.world_size > 1
+
+    @property
+    def is_main(self):
+        return self.rank == 0
+
+    @property
+    def is_local_main(self):
+        return self.rank == 0
+
     def __init__(
         self,
         imagen = None,
@@ -398,17 +410,7 @@ class ImagenTrainer(nn.Module):
 
 
 
-    @property
-    def is_distributed(self):
-        return self.use_ddp and dist.is_initialized() and self.world_size > 1
-
-    @property
-    def is_main(self):
-        return self.rank == 0
-
-    @property
-    def is_local_main(self):
-        return self.rank == 0
+   
 
     @property
     def unwrapped_unet(self):
