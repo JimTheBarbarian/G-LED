@@ -6,7 +6,7 @@ from torch import nn
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms as T, utils
 import torch.nn.functional as F
-from mimagen_pytorch import t5
+#from mimagen_pytorch import t5
 from torch.nn.utils.rnn import pad_sequence
 
 from PIL import Image
@@ -33,7 +33,7 @@ def convert_image_to(img_type, image):
     return image
 
 # dataset, dataloader, collator
-
+'''
 class Collator:
     def __init__(self, image_size, url_label, text_label, image_label, name, channels):
         self.url_label = url_label
@@ -61,18 +61,18 @@ class Collator:
             except:
                 continue
 
-            text = t5.t5_encode_text([item[self.text_label]], name=self.name)
-            texts.append(torch.squeeze(text))
+            #text = t5.t5_encode_text([item[self.text_label]], name=self.name)
+            #texts.append(torch.squeeze(text))
             images.append(image)
 
-        if len(texts) == 0:
-            return None
+        #if len(texts) == 0:
+        #    return None
         
-        texts = pad_sequence(texts, True)
+        #texts = pad_sequence(texts, True)
 
-        newbatch = []
-        for i in range(len(texts)):
-            newbatch.append((images[i], texts[i]))
+        #newbatch = []
+        #for i in range(len(texts)):
+        #    newbatch.append((images[i], texts[i]))
 
         return torch.utils.data.dataloader.default_collate(newbatch)
 
@@ -88,7 +88,7 @@ class Collator:
         except Exception:
             image = None
         return image
-
+'''
 class Dataset(Dataset):
     def __init__(
         self,
