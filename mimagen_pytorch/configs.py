@@ -6,7 +6,7 @@ from enum import Enum
 from imagen_pytorch.imagen_pytorch import Imagen, Unet, Unet3D, NullUnet
 from imagen_pytorch.trainer import ImagenTrainer
 from imagen_pytorch.elucidated_imagen import ElucidatedImagen
-from imagen_pytorch.t5 import DEFAULT_T5_NAME, get_encoded_dim
+#from imagen_pytorch.t5 import DEFAULT_T5_NAME, get_encoded_dim
 
 # helper functions
 
@@ -44,7 +44,7 @@ class NullUnetConfig(BaseModel):
 class UnetConfig(AllowExtraBaseModel):
     dim:                int
     dim_mults:          ListOrTuple(int)
-    text_embed_dim:     int = get_encoded_dim(DEFAULT_T5_NAME)
+    #text_embed_dim:     int = get_encoded_dim(DEFAULT_T5_NAME)
     cond_dim:           int = None
     channels:           int = 3
     attn_dim_head:      int = 32
@@ -56,7 +56,7 @@ class UnetConfig(AllowExtraBaseModel):
 class Unet3DConfig(AllowExtraBaseModel):
     dim:                int
     dim_mults:          ListOrTuple(int)
-    text_embed_dim:     int = get_encoded_dim(DEFAULT_T5_NAME)
+    #text_embed_dim:     int = get_encoded_dim(DEFAULT_T5_NAME)
     cond_dim:           int = None
     channels:           int = 3
     attn_dim_head:      int = 32
@@ -71,10 +71,10 @@ class ImagenConfig(AllowExtraBaseModel):
     video:                  bool = False
     timesteps:              SingleOrList(int) = 1000
     noise_schedules:        SingleOrList(NoiseSchedule) = 'cosine'
-    text_encoder_name:      str = DEFAULT_T5_NAME
+    #text_encoder_name:      str = DEFAULT_T5_NAME
     channels:               int = 3
     loss_type:              str = 'l2'
-    cond_drop_prob:         float = 0.5
+    #cond_drop_prob:         float = 0.5
 
     @validator('image_sizes')
     def check_image_sizes(cls, image_sizes, values):
@@ -109,9 +109,9 @@ class ElucidatedImagenConfig(AllowExtraBaseModel):
     unets:                  ListOrTuple(Union[UnetConfig, Unet3DConfig, NullUnetConfig])
     image_sizes:            ListOrTuple(int)
     video:                  bool = False
-    text_encoder_name:      str = DEFAULT_T5_NAME
+    #text_encoder_name:      str = DEFAULT_T5_NAME
     channels:               int = 3
-    cond_drop_prob:         float = 0.5
+    #cond_drop_prob:         float = 0.5
     num_sample_steps:       SingleOrList(int) = 32
     sigma_min:              SingleOrList(float) = 0.002
     sigma_max:              SingleOrList(int) = 80

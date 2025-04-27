@@ -1,10 +1,10 @@
 import torch
-import transformers
+#import transformers
 from typing import List
-from transformers import T5Tokenizer, T5EncoderModel, T5Config
+#from transformers import T5Tokenizer, T5EncoderModel, T5Config
 from einops import rearrange
 
-transformers.logging.set_verbosity_error()
+#transformers.logging.set_verbosity_error()
 
 def exists(val):
     return val is not None
