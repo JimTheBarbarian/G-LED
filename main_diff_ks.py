@@ -164,7 +164,7 @@ if __name__ == '__main__':
 	"""
 	device = torch.device(diff_args.device)
 	unet1 = Unet3D(dim=diff_args.unet_dim,
-				   cond_images_channels=2, 
+				   cond_images_channels=1, 
 				   memory_efficient=True, 
 				   dim_mults=(1, 2, 4, 8)).to(device)  #mid: mid channel
 	image_sizes = (1)
