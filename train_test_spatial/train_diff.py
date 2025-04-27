@@ -10,8 +10,7 @@ from utils import save_loss
 def train_diff(diff_args,
 			   seq_args,
 			   trainer,
-			   data_loader,
-			   sampler):
+			   data_loader):
 	loss_list = []
 	for epoch in range(diff_args.epoch_num):
 		down_sampler = torch.nn.Upsample(size=[1,seq_args.coarse_dim], 
