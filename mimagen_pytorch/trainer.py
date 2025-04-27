@@ -912,7 +912,7 @@ class ImagenTrainer(nn.Module):
         #self.set_accelerator_scaler(unet_number)
 
         index = unet_number - 1
-        unet = self.unet_being_trained
+        unet = self.unet_being_trained_ddp
 
         optimizer = getattr(self, f'optim{index}')
         scaler = getattr(self, f'scaler{index}')
