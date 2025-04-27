@@ -291,7 +291,7 @@ class ImagenTrainer(nn.Module):
         # elucidated or not
 
         self.is_elucidated = isinstance(imagen, ElucidatedImagen)
-
+        self.device = device # Bad hack. TODO: only use one of these variables
         self.mydevice = device
         
         ImagenTrainer.locked = use_ddp
@@ -377,7 +377,6 @@ class ImagenTrainer(nn.Module):
         self.register_buffer('steps', torch.tensor([0] * self.num_unets))
 
         self.verbose = verbose
-
         self.imagen.to(self.device) # original
         self.to(self.device) #original
 
