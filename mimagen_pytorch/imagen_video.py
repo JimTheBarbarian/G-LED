@@ -16,7 +16,7 @@ from einops.layers.torch import Rearrange, Reduce
 from einops_exts import rearrange_many, repeat_many, check_shape
 from einops_exts.torch import EinopsToAndFrom
 
-from mimagen_pytorch.t5 import t5_encode_text, get_encoded_dim, DEFAULT_T5_NAME
+#from mimagen_pytorch.t5 import t5_encode_text, get_encoded_dim, DEFAULT_T5_NAME
 
 # helper functions
 
@@ -1110,7 +1110,7 @@ class Unet3D(nn.Module):
         *,
         dim,
         image_embed_dim = 1024,
-        text_embed_dim = get_encoded_dim(DEFAULT_T5_NAME),
+        text_embed_dim = None,
         num_resnet_blocks = 1,
         cond_dim = None,
         num_image_tokens = 4,
@@ -1134,7 +1134,7 @@ class Unet3D(nn.Module):
         layer_cross_attns = True,
         use_linear_attn = False,
         use_linear_cross_attn = False,
-        cond_on_text = True,
+        cond_on_text = False,
         max_text_len = 256,
         init_dim = None,
         resnet_groups = 8,   # I changed it 8 -> 6
@@ -1253,36 +1253,36 @@ class Unet3D(nn.Module):
 
         self.text_to_cond = None
 
-        if cond_on_text:
-            assert exists(text_embed_dim), 'text_embed_dim must be given to the unet if cond_on_text is True'
-            self.text_to_cond = nn.Linear(text_embed_dim, cond_dim)
+        #if cond_on_text:
+        #    assert exists(text_embed_dim), 'text_embed_dim must be given to the unet if cond_on_text is True'
+        #    self.text_to_cond = nn.Linear(text_embed_dim, cond_dim)
 
         # finer control over whether to condition on text encodings
 
-        self.cond_on_text = cond_on_text
+        #self.cond_on_text = cond_on_text
 
         # attention pooling
 
-        self.attn_pool = PerceiverResampler(dim = cond_dim, depth = 2, dim_head = attn_dim_head, heads = attn_heads, num_latents = attn_pool_num_latents, cosine_sim_attn = cosine_sim_attn) if attn_pool_text else None
+        #self.attn_pool = PerceiverResampler(dim = cond_dim, depth = 2, dim_head = attn_dim_head, heads = attn_heads, num_latents = attn_pool_num_latents, cosine_sim_attn = cosine_sim_attn) if attn_pool_text else None
 
         # for classifier free guidance
 
-        self.max_text_len = max_text_len
+        #self.max_text_len = max_text_len
 
-        self.null_text_embed = nn.Parameter(torch.randn(1, max_text_len, cond_dim))
-        self.null_text_hidden = nn.Parameter(torch.randn(1, time_cond_dim))
+        #self.null_text_embed = nn.Parameter(torch.randn(1, max_text_len, cond_dim))
+        #self.null_text_hidden = nn.Parameter(torch.randn(1, time_cond_dim))
 
         # for non-attention based text conditioning at all points in the network where time is also conditioned
 
-        self.to_text_non_attn_cond = None
+        #self.to_text_non_attn_cond = None
 
-        if cond_on_text:
-            self.to_text_non_attn_cond = nn.Sequential(
-                nn.LayerNorm(cond_dim),
-                nn.Linear(cond_dim, time_cond_dim),
-                nn.SiLU(),
-                nn.Linear(time_cond_dim, time_cond_dim)
-            )
+        #if cond_on_text:
+        #    self.to_text_non_attn_cond = nn.Sequential(
+        #        nn.LayerNorm(cond_dim),
+        #        nn.Linear(cond_dim, time_cond_dim),
+        #        nn.SiLU(),
+        #        nn.Linear(time_cond_dim, time_cond_dim)
+        #    )
 
         # attention related params
 
@@ -1609,70 +1609,70 @@ class Unet3D(nn.Module):
 
         # text conditioning
 
-        text_tokens = None
+        #text_tokens = None
 
-        if exists(text_embeds) and self.cond_on_text:
+        #if exists(text_embeds) and self.cond_on_text:
 
             # conditional dropout
 
-            text_keep_mask = prob_mask_like((batch_size,), 1 - cond_drop_prob, device = device)
+            #text_keep_mask = prob_mask_like((batch_size,), 1 - cond_drop_prob, device = device)
 
-            text_keep_mask_embed = rearrange(text_keep_mask, 'b -> b 1 1')
-            text_keep_mask_hidden = rearrange(text_keep_mask, 'b -> b 1')
+            #text_keep_mask_embed = rearrange(text_keep_mask, 'b -> b 1 1')
+            #text_keep_mask_hidden = rearrange(text_keep_mask, 'b -> b 1')
 
             # calculate text embeds
 
-            text_tokens = self.text_to_cond(text_embeds)
+            #text_tokens = self.text_to_cond(text_embeds)
 
-            text_tokens = text_tokens[:, :self.max_text_len]
+            #text_tokens = text_tokens[:, :self.max_text_len]
             
-            if exists(text_mask):
-                text_mask = text_mask[:, :self.max_text_len]
+            #if exists(text_mask):
+            #    text_mask = text_mask[:, :self.max_text_len]
 
-            text_tokens_len = text_tokens.shape[1]
-            remainder = self.max_text_len - text_tokens_len
+            #text_tokens_len = text_tokens.shape[1]
+            #remainder = self.max_text_len - text_tokens_len
 
-            if remainder > 0:
-                text_tokens = F.pad(text_tokens, (0, 0, 0, remainder))
+            #if remainder > 0:
+            #    text_tokens = F.pad(text_tokens, (0, 0, 0, remainder))
 
-            if exists(text_mask):
-                if remainder > 0:
-                    text_mask = F.pad(text_mask, (0, remainder), value = False)
+            #if exists(text_mask):
+            #    if remainder > 0:
+            #        text_mask = F.pad(text_mask, (0, remainder), value = False)
 
-                text_mask = rearrange(text_mask, 'b n -> b n 1')
-                text_keep_mask_embed = text_mask & text_keep_mask_embed
+            #    text_mask = rearrange(text_mask, 'b n -> b n 1')
+            #    text_keep_mask_embed = text_mask & text_keep_mask_embed
 
-            null_text_embed = self.null_text_embed.to(text_tokens.dtype) # for some reason pytorch AMP not working
+            #null_text_embed = self.null_text_embed.to(text_tokens.dtype) # for some reason pytorch AMP not working
 
-            text_tokens = torch.where(
-                text_keep_mask_embed,
-                text_tokens,
-                null_text_embed
-            )
+            #text_tokens = torch.where(
+            #    text_keep_mask_embed,
+            #    text_tokens,
+            #    null_text_embed
+            #)
 
-            if exists(self.attn_pool):
-                text_tokens = self.attn_pool(text_tokens)
+            #if exists(self.attn_pool):
+            #    text_tokens = self.attn_pool(text_tokens)
 
             # extra non-attention conditioning by projecting and then summing text embeddings to time
             # termed as text hiddens
 
-            mean_pooled_text_tokens = text_tokens.mean(dim = -2)
+            #mean_pooled_text_tokens = text_tokens.mean(dim = -2)
 
-            text_hiddens = self.to_text_non_attn_cond(mean_pooled_text_tokens)
+            #text_hiddens = self.to_text_non_attn_cond(mean_pooled_text_tokens)
 
-            null_text_hidden = self.null_text_hidden.to(t.dtype)
+            #null_text_hidden = self.null_text_hidden.to(t.dtype)
 
-            text_hiddens = torch.where(
-                text_keep_mask_hidden,
-                text_hiddens,
-                null_text_hidden
-            )
+            #text_hiddens = torch.where(
+            #    text_keep_mask_hidden,
+            #    text_hiddens,
+            #    null_text_hidden
+            #)
 
-            t = t + text_hiddens
+            #t = t + text_hiddens
 
         # main conditioning tokens (c)
 
-        c = time_tokens if not exists(text_tokens) else torch.cat((time_tokens, text_tokens), dim = -2)
+        c = time_tokens #if not exists(text_tokens) else torch.cat((time_tokens, text_tokens), dim = -2)
 
         # normalize conditioning tokens
 

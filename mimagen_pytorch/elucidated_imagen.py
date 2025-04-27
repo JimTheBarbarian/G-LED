@@ -46,8 +46,8 @@ from mimagen_pytorch.imagen_video import (
     Unet3D,
     resize_video_to
 )
-
-from mimagen_pytorch.t5 import t5_encode_text, get_encoded_dim, DEFAULT_T5_NAME
+# No T5 allowed for us 
+#from mimagen_pytorch.t5 import t5_encode_text, get_encoded_dim, DEFAULT_T5_NAME
 
 # constants
 
@@ -81,8 +81,8 @@ class ElucidatedImagen(nn.Module):
             *,
             image_sizes,  # for cascading ddpm, image size at each stage
             image_width,
-            text_encoder_name=DEFAULT_T5_NAME,
-            text_embed_dim=None,
+            #text_encoder_name=DEFAULT_T5_NAME,
+            #text_embed_dim=None,
             channels=3,
             cond_drop_prob=0.1,
             random_crop_sizes=None,
@@ -90,7 +90,7 @@ class ElucidatedImagen(nn.Module):
             # in the paper, they present a new trick where they noise the lowres conditioning image, and at sample time, fix it to a certain level (0.1 or 0.3) - the unets are also made to be conditioned on this noise level
             per_sample_random_aug_noise_level=False,
             # unclear when conditioning on augmentation noise level, whether each batch element receives a random aug noise value - turning off due to @marunine's find
-            condition_on_text=True,
+            #condition_on_text=True,
             auto_normalize_img=True,
             # whether to take care of normalizing the image from [0, 1] to [-1, 1] and back automatically - you can turn this off if you want to pass in the [-1, 1] ranged image yourself from the dataloader
             dynamic_thresholding=True,
@@ -115,8 +115,8 @@ class ElucidatedImagen(nn.Module):
 
         # conditioning hparams
 
-        self.condition_on_text = condition_on_text
-        self.unconditional = not condition_on_text
+        #self.condition_on_text = condition_on_text
+        self.unconditional = True
 
         # channels
 
@@ -140,11 +140,11 @@ class ElucidatedImagen(nn.Module):
 
         # get text encoder
 
-        self.text_encoder_name = text_encoder_name
-        self.text_embed_dim = default(text_embed_dim, lambda: get_encoded_dim(text_encoder_name))
+        #self.text_encoder_name = text_encoder_name
+        #self.text_embed_dim = default(text_embed_dim, lambda: get_encoded_dim(text_encoder_name))
 
-        self.encode_text = partial(t5_encode_text, name=text_encoder_name)
-
+        #self.encode_text = partial(t5_encode_text, name=text_encoder_name)
+        self.text_embed_dim = None
         # construct unets
 
         self.unets = nn.ModuleList([])
@@ -156,8 +156,8 @@ class ElucidatedImagen(nn.Module):
 
             one_unet = one_unet.cast_model_parameters(
                 lowres_cond=not is_first,
-                cond_on_text=self.condition_on_text,
-                text_embed_dim=self.text_embed_dim if self.condition_on_text else None,
+                cond_on_text=False,
+                text_embed_dim=None, #if self.condition_on_text else None,
                 channels=self.channels,
                 channels_out=self.channels
             )
@@ -193,8 +193,8 @@ class ElucidatedImagen(nn.Module):
 
         # classifier free guidance
 
-        self.cond_drop_prob = cond_drop_prob
-        self.can_classifier_guidance = cond_drop_prob > 0.
+        #self.cond_drop_prob = cond_drop_prob
+        #self.can_classifier_guidance = cond_drop_prob > 0.
 
         # normalize and unnormalize image functions
 
@@ -234,12 +234,12 @@ class ElucidatedImagen(nn.Module):
 
         self.to(next(self.unets.parameters()).device)
 
-    def force_unconditional_(self):
-        self.condition_on_text = False
-        self.unconditional = True
+    #def force_unconditional_(self):
+    #    self.condition_on_text = False
+    #    self.unconditional = True
 
-        for unet in self.unets:
-            unet.cond_on_text = False
+    #    for unet in self.unets:
+    #        unet.cond_on_text = False
 
     @property
     def device(self):
@@ -345,6 +345,14 @@ class ElucidatedImagen(nn.Module):
 
         padded_sigma = self.right_pad_dims_to_datatype(sigma)
 
+        # Prepare arguments for unet_forward, excluding text/guidance ones
+        unet_input_kwargs = kwargs.copy()
+        # Remove args not expected by unet.forward if they were passed via **kwargs
+        unet_input_kwargs.pop('text_embeds', None)
+        unet_input_kwargs.pop('text_mask', None)
+        unet_input_kwargs.pop('cond_images', None) # Keep if Unet uses it directly
+        unet_input_kwargs.pop('cond_drop_prob', None) # Not needed
+
         net_out = unet_forward(
             self.c_in(sigma_data, padded_sigma) * noised_images,
             self.c_noise(sigma),
@@ -387,7 +395,7 @@ class ElucidatedImagen(nn.Module):
             unet_number,
             clamp=False, # Han Gao make it Flase
             dynamic_threshold=True,
-            cond_scale=1.,
+            #cond_scale=1.,
             use_tqdm=True,
             inpaint_images=None,
             inpaint_masks=None,
@@ -449,10 +457,11 @@ class ElucidatedImagen(nn.Module):
             sigma_data=hp.sigma_data,
             clamp=clamp,
             dynamic_threshold=dynamic_threshold,
-            cond_scale=cond_scale,
+            #cond_scale=cond_scale,
             **kwargs
         )
-
+        unet_kwargs.pop('text_embeds',None)
+        unet_kwargs.pop('text_mask',None)
         # gradually denoise
 
         initial_step = default(skip_steps, 0)
@@ -599,9 +608,9 @@ class ElucidatedImagen(nn.Module):
     @eval_decorator
     def sample(
             self,
-            texts: List[str] = None,
-            text_masks=None,
-            text_embeds=None,
+            #texts: List[str] = None,
+            #text_masks=None,
+            #text_embeds=None,
             cond_images=None,
             inpaint_images=None,
             inpaint_masks=None,
@@ -612,7 +621,7 @@ class ElucidatedImagen(nn.Module):
             sigma_max=None,
             video_frames=None,
             batch_size=1,
-            cond_scale=1.,
+            #cond_scale=1.,
             lowres_sample_noise_level=None,
             start_at_unet_number=1,
             start_image_or_video=None,
@@ -629,37 +638,37 @@ class ElucidatedImagen(nn.Module):
 
         cond_images = maybe(cast_uint8_images_to_float)(cond_images)
 
-        if exists(texts) and not exists(text_embeds) and not self.unconditional:
-            assert all([*map(len, texts)]), 'text cannot be empty'
+        #if exists(texts) and not exists(text_embeds) and not self.unconditional:
+        #    assert all([*map(len, texts)]), 'text cannot be empty'
 
-            with autocast(enabled=False):
-                text_embeds, text_masks = self.encode_text(texts, return_attn_mask=True)
+        #    with autocast(enabled=False):
+        #        text_embeds, text_masks = self.encode_text(texts, return_attn_mask=True)
 
-            text_embeds, text_masks = map(lambda t: t.to(device), (text_embeds, text_masks))
+        #    text_embeds, text_masks = map(lambda t: t.to(device), (text_embeds, text_masks))
 
-        if not self.unconditional:
-            assert exists(
-                text_embeds), 'text must be passed in if the network was not trained without text `condition_on_text` must be set to `False` when training'
+        #if not self.unconditional:
+        #    assert exists(
+        #        text_embeds), 'text must be passed in if the network was not trained without text `condition_on_text` must be set to `False` when training'
 
-            text_masks = default(text_masks, lambda: torch.any(text_embeds != 0., dim=-1))
-            batch_size = text_embeds.shape[0]
+        #    text_masks = default(text_masks, lambda: torch.any(text_embeds != 0., dim=-1))
+        #    batch_size = text_embeds.shape[0]
 
         if exists(inpaint_images):
-            if self.unconditional:
-                if batch_size == 1:  # assume researcher wants to broadcast along inpainted images
-                    batch_size = inpaint_images.shape[0]
+            
+            if batch_size == 1:  # assume researcher wants to broadcast along inpainted images
+                batch_size = inpaint_images.shape[0]
 
             assert inpaint_images.shape[
                        0] == batch_size, 'number of inpainting images must be equal to the specified batch size on sample `sample(batch_size=<int>)``'
-            assert not (self.condition_on_text and inpaint_images.shape[0] != text_embeds.shape[
-                0]), 'number of inpainting images must be equal to the number of text to be conditioned on'
+            #assert not (self.condition_on_text and inpaint_images.shape[0] != text_embeds.shape[
+            #    0]), 'number of inpainting images must be equal to the number of text to be conditioned on'
 
-        assert not (self.condition_on_text and not exists(
-            text_embeds)), 'text or text encodings must be passed into imagen if specified'
-        assert not (not self.condition_on_text and exists(
-            text_embeds)), 'imagen specified not to be conditioned on text, yet it is presented'
-        assert not (exists(text_embeds) and text_embeds.shape[
-            -1] != self.text_embed_dim), f'invalid text embedding dimension being passed in (should be {self.text_embed_dim})'
+        #assert not (self.condition_on_text and not exists(
+        #    text_embeds)), 'text or text encodings must be passed into imagen if specified'
+        #assert not (not self.condition_on_text and exists(
+        #    text_embeds)), 'imagen specified not to be conditioned on text, yet it is presented'
+        #assert not (exists(text_embeds) and text_embeds.shape[
+        #   -1] != self.text_embed_dim), f'invalid text embedding dimension being passed in (should be {self.text_embed_dim})'
 
         assert not (exists(inpaint_images) ^ exists(
             inpaint_masks)), 'inpaint images and masks must be both passed in to do inpainting'
@@ -672,7 +681,7 @@ class ElucidatedImagen(nn.Module):
         lowres_sample_noise_level = default(lowres_sample_noise_level, self.lowres_sample_noise_level)
 
         num_unets = len(self.unets)
-        cond_scale = cast_tuple(cond_scale, num_unets)
+        #cond_scale = cast_tuple(cond_scale, num_unets)
 
         # handle video and frame dimension
 
@@ -692,7 +701,6 @@ class ElucidatedImagen(nn.Module):
         sigma_max = cast_tuple(sigma_max, num_unets)
 
         # handle starting at a unet greater than 1, for training only-upscaler training
-
         if start_at_unet_number > 1:
             assert start_at_unet_number <= num_unets, 'must start a unet that is less than the total number of unets'
             assert not exists(stop_at_unet_number) or start_at_unet_number <= stop_at_unet_number
@@ -705,7 +713,7 @@ class ElucidatedImagen(nn.Module):
 
         for unet_number, unet, channel, image_size, image_width, unet_hparam, dynamic_threshold, unet_cond_scale, unet_init_images, unet_skip_steps, unet_sigma_min, unet_sigma_max in tqdm(
                 zip(range(1, num_unets + 1), self.unets, self.sample_channels, self.image_sizes, self.image_width, self.hparams,
-                    self.dynamic_thresholding, cond_scale, init_images, skip_steps, sigma_min, sigma_max),
+                    self.dynamic_thresholding, init_images, skip_steps, sigma_min, sigma_max),
                 disable=not use_tqdm):
             if unet_number < start_at_unet_number:
                 continue
@@ -740,8 +748,8 @@ class ElucidatedImagen(nn.Module):
                     unet,
                     shape,
                     unet_number=unet_number,
-                    text_embeds=text_embeds,
-                    text_mask=text_masks,
+                    #text_embeds=text_embeds,
+                    #text_mask=text_masks,
                     cond_images=cond_images,
                     inpaint_images=inpaint_images,
                     inpaint_masks=inpaint_masks,
@@ -750,7 +758,7 @@ class ElucidatedImagen(nn.Module):
                     skip_steps=unet_skip_steps,
                     sigma_min=unet_sigma_min,
                     sigma_max=unet_sigma_max,
-                    cond_scale=unet_cond_scale,
+                    #cond_scale=unet_cond_scale,
                     lowres_cond_img=lowres_cond_img,
                     lowres_noise_times=lowres_noise_times,
                     dynamic_threshold=dynamic_threshold,
@@ -790,15 +798,17 @@ class ElucidatedImagen(nn.Module):
             self,
             images,  # rename to images or video
             unet: Union[Unet, Unet3D, NullUnet, DistributedDataParallel] = None,
-            texts: List[str] = None,
-            text_embeds=None,
-            text_masks=None,
+            #texts: List[str] = None,
+            #text_embeds=None,
+            #text_masks=None,
             unet_number=None,
             cond_images=None,
             **kwargs
     ):
-        #images = images.to(self.device) # Han Gao added 
-        #cond_images = cond_images.to(self.device)
+        images = images.to(self.device) # Elisha Dayag added 
+        
+        if exists(cond_images):
+            cond_images = cond_images.to(self.device)
         if self.is_video and images.ndim == 4:
             images = rearrange(images, 'b c h w -> b c 1 h w')
             kwargs.update(ignore_time=True)
@@ -819,7 +829,7 @@ class ElucidatedImagen(nn.Module):
         unet_index = unet_number - 1
 
         unet = default(unet, lambda: self.get_unet(unet_number))
-
+        unet.to(self.device)
         assert not isinstance(unet, NullUnet), 'null unet cannot and should not be trained'
 
         target_image_size = self.image_sizes[unet_index]
@@ -835,26 +845,26 @@ class ElucidatedImagen(nn.Module):
 
         # assert h >= target_image_size and w >= target_image_size # Han Gao comment out
 
-        if exists(texts) and not exists(text_embeds) and not self.unconditional:
-            assert all([*map(len, texts)]), 'text cannot be empty'
-            assert len(texts) == len(
-                images), 'number of text captions does not match up with the number of images given'
+        #if exists(texts) and not exists(text_embeds) and not self.unconditional:
+        #    assert all([*map(len, texts)]), 'text cannot be empty'
+        #    assert len(texts) == len(
+        #        images), 'number of text captions does not match up with the number of images given'
 
-            with autocast(enabled=False):
-                text_embeds, text_masks = self.encode_text(texts, return_attn_mask=True)
+        #    with autocast(enabled=False):
+        #        text_embeds, text_masks = self.encode_text(texts, return_attn_mask=True)
 
-            text_embeds, text_masks = map(lambda t: t.to(images.device), (text_embeds, text_masks))
+        #    text_embeds, text_masks = map(lambda t: t.to(images.device), (text_embeds, text_masks))
 
-        if not self.unconditional:
-            text_masks = default(text_masks, lambda: torch.any(text_embeds != 0., dim=-1))
+        #if not self.unconditional:
+        #    text_masks = default(text_masks, lambda: torch.any(text_embeds != 0., dim=-1))
 
-        assert not (self.condition_on_text and not exists(
-            text_embeds)), 'text or text encodings must be passed into decoder if specified'
-        assert not (not self.condition_on_text and exists(
-            text_embeds)), 'decoder specified not to be conditioned on text, yet it is presented'
+        #assert not (self.condition_on_text and not exists(
+        ##    text_embeds)), 'text or text encodings must be passed into decoder if specified'
+        #assert not (not self.condition_on_text and exists(
+        #    text_embeds)), 'decoder specified not to be conditioned on text, yet it is presented'
 
-        assert not (exists(text_embeds) and text_embeds.shape[
-            -1] != self.text_embed_dim), f'invalid text embedding dimension being passed in (should be {self.text_embed_dim})'
+        #assert not (exists(text_embeds) and text_embeds.shape[
+        #    -1] != self.text_embed_dim), f'invalid text embedding dimension being passed in (should be {self.text_embed_dim})'
 
         lowres_cond_img = lowres_aug_times = None
         # if exists(prev_image_size):
@@ -911,12 +921,12 @@ class ElucidatedImagen(nn.Module):
         # unet kwargs
         unet_kwargs = dict(
             sigma_data=hp.sigma_data,
-            text_embeds=text_embeds,
-            text_mask=text_masks,
+            #text_embeds=text_embeds,
+            #text_mask=text_masks,
             cond_images=cond_images,
             lowres_noise_times=self.lowres_noise_schedule.get_condition(lowres_aug_times),
             lowres_cond_img=None,
-            cond_drop_prob=self.cond_drop_prob,
+            #cond_drop_prob=self.cond_drop_prob,
             **kwargs
         )
 

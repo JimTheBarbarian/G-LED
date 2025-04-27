@@ -1754,11 +1754,11 @@ class Imagen(nn.Module):
         unets,
         *,
         image_sizes,                                # for cascading ddpm, image size at each stage
-        text_encoder_name = DEFAULT_T5_NAME,
-        text_embed_dim = None,
+        #text_encoder_name = DEFAULT_T5_NAME,
+        #text_embed_dim = None,
         channels = 3,
         timesteps = 1000,
-        cond_drop_prob = 0.1,
+        #cond_drop_prob = 0.1,
         loss_type = 'l2',
         noise_schedules = 'cosine',
         pred_objectives = 'noise',
@@ -1766,7 +1766,7 @@ class Imagen(nn.Module):
         lowres_noise_schedule = 'linear',
         lowres_sample_noise_level = 0.2,            # in the paper, they present a new trick where they noise the lowres conditioning image, and at sample time, fix it to a certain level (0.1 or 0.3) - the unets are also made to be conditioned on this noise level
         per_sample_random_aug_noise_level = False,  # unclear when conditioning on augmentation noise level, whether each batch element receives a random aug noise value - turning off due to @marunine's find
-        condition_on_text = True,
+        #condition_on_text = True,
         auto_normalize_img = True,                  # whether to take care of normalizing the image from [0, 1] to [-1, 1] and back automatically - you can turn this off if you want to pass in the [-1, 1] ranged image yourself from the dataloader
         p2_loss_weight_gamma = 0.5,                 # p2 loss weight, from https://arxiv.org/abs/2204.00227 - 0 is equivalent to weight of 1 across time
         p2_loss_weight_k = 1,
@@ -1792,8 +1792,8 @@ class Imagen(nn.Module):
 
         # conditioning hparams
 
-        self.condition_on_text = condition_on_text
-        self.unconditional = not condition_on_text
+        #self.condition_on_text = condition_on_text
+        self.unconditional =  True
 
         # channels
 
@@ -1839,10 +1839,10 @@ class Imagen(nn.Module):
 
         # get text encoder
 
-        self.text_encoder_name = text_encoder_name
-        self.text_embed_dim = default(text_embed_dim, lambda: get_encoded_dim(text_encoder_name))
+        #self.text_encoder_name = text_encoder_name
+        #self.text_embed_dim = default(text_embed_dim, lambda: get_encoded_dim(text_encoder_name))
 
-        self.encode_text = partial(t5_encode_text, name = text_encoder_name)
+        #self.encode_text = partial(t5_encode_text, name = text_encoder_name)
 
         # construct unets
 
@@ -1892,8 +1892,8 @@ class Imagen(nn.Module):
 
         # classifier free guidance
 
-        self.cond_drop_prob = cond_drop_prob
-        self.can_classifier_guidance = cond_drop_prob > 0.
+        #self.cond_drop_prob = cond_drop_prob
+        #self.can_classifier_guidance = cond_drop_prob > 0.
 
         # normalize and unnormalize image functions
 
@@ -2070,8 +2070,8 @@ class Imagen(nn.Module):
         noise_scheduler,
         lowres_cond_img = None,
         lowres_noise_times = None,
-        text_embeds = None,
-        text_mask = None,
+        #text_embeds = None,
+        #text_mask = None,
         cond_images = None,
         inpaint_images = None,
         inpaint_masks = None,
@@ -2133,8 +2133,8 @@ class Imagen(nn.Module):
                     img,
                     times,
                     t_next = times_next,
-                    text_embeds = text_embeds,
-                    text_mask = text_mask,
+                    #text_embeds = text_embeds,
+                    #text_mask = text_mask,
                     cond_images = cond_images,
                     cond_scale = cond_scale,
                     self_cond = self_cond,
@@ -2169,9 +2169,9 @@ class Imagen(nn.Module):
     @beartype
     def sample(
         self,
-        texts: List[str] = None,
-        text_masks = None,
-        text_embeds = None,
+        #texts: List[str] = None,
+        #text_masks = None,
+        #text_embeds = None,
         video_frames = None,
         cond_images = None,
         inpaint_images = None,
@@ -2195,19 +2195,19 @@ class Imagen(nn.Module):
 
         cond_images = maybe(cast_uint8_images_to_float)(cond_images)
 
-        if exists(texts) and not exists(text_embeds) and not self.unconditional:
-            assert all([*map(len, texts)]), 'text cannot be empty'
+        #if exists(texts) and not exists(text_embeds) and not self.unconditional:
+        #    assert all([*map(len, texts)]), 'text cannot be empty'
 
-            with autocast(enabled = False):
-                text_embeds, text_masks = self.encode_text(texts, return_attn_mask = True)
+        #    with autocast(enabled = False):
+        #        text_embeds, text_masks = self.encode_text(texts, return_attn_mask = True)
 
-            text_embeds, text_masks = map(lambda t: t.to(device), (text_embeds, text_masks))
+        #    text_embeds, text_masks = map(lambda t: t.to(device), (text_embeds, text_masks))
 
-        if not self.unconditional:
-            assert exists(text_embeds), 'text must be passed in if the network was not trained without text `condition_on_text` must be set to `False` when training'
+        #if not self.unconditional:
+        #    assert exists(text_embeds), 'text must be passed in if the network was not trained without text `condition_on_text` must be set to `False` when training'
 
-            text_masks = default(text_masks, lambda: torch.any(text_embeds != 0., dim = -1))
-            batch_size = text_embeds.shape[0]
+        #    text_masks = default(text_masks, lambda: torch.any(text_embeds != 0., dim = -1))
+        #    batch_size = text_embeds.shape[0]
 
         if exists(inpaint_images):
             if self.unconditional:
@@ -2215,11 +2215,11 @@ class Imagen(nn.Module):
                     batch_size = inpaint_images.shape[0]
 
             assert inpaint_images.shape[0] == batch_size, 'number of inpainting images must be equal to the specified batch size on sample `sample(batch_size=<int>)``'
-            assert not (self.condition_on_text and inpaint_images.shape[0] != text_embeds.shape[0]), 'number of inpainting images must be equal to the number of text to be conditioned on'
+            #assert not (self.condition_on_text and inpaint_images.shape[0] != text_embeds.shape[0]), 'number of inpainting images must be equal to the number of text to be conditioned on'
 
-        assert not (self.condition_on_text and not exists(text_embeds)), 'text or text encodings must be passed into imagen if specified'
-        assert not (not self.condition_on_text and exists(text_embeds)), 'imagen specified not to be conditioned on text, yet it is presented'
-        assert not (exists(text_embeds) and text_embeds.shape[-1] != self.text_embed_dim), f'invalid text embedding dimension being passed in (should be {self.text_embed_dim})'
+        #assert not (self.condition_on_text and not exists(text_embeds)), 'text or text encodings must be passed into imagen if specified'
+        #assert not (not self.condition_on_text and exists(text_embeds)), 'imagen specified not to be conditioned on text, yet it is presented'
+        #assert not (exists(text_embeds) and text_embeds.shape[-1] != self.text_embed_dim), f'invalid text embedding dimension being passed in (should be {self.text_embed_dim})'
 
         assert not (exists(inpaint_images) ^ exists(inpaint_masks)),  'inpaint images and masks must be both passed in to do inpainting'
 
@@ -2290,8 +2290,8 @@ class Imagen(nn.Module):
                 img = self.p_sample_loop(
                     unet,
                     shape,
-                    text_embeds = text_embeds,
-                    text_mask = text_masks,
+                    #text_embeds = text_embeds,
+                    #text_mask = text_masks,
                     cond_images = cond_images,
                     inpaint_images = inpaint_images,
                     inpaint_masks = inpaint_masks,

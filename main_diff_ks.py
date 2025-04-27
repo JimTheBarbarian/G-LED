@@ -176,7 +176,7 @@ if __name__ == '__main__':
 		channels = 1,   # Han Gao add the input to this args explicity     
 		random_crop_sizes = None,
 		num_sample_steps = diff_args.num_sample_steps, # original is 10
-		cond_drop_prob = 0.1,
+		#cond_drop_prob = 0.1,
 		sigma_min = 0.002,
 		sigma_max = (80),      # max noise level, double the max noise level for upsampler  （80，160）
 		sigma_data = 0.5,      # standard deviation of data distribution
@@ -187,7 +187,7 @@ if __name__ == '__main__':
 		S_tmin = 0.05,
 		S_tmax = 50,
 		S_noise = 1.003,
-		condition_on_text = False,
+		#condition_on_text = False,
 		auto_normalize_img = False  # Han Gao make it false
 		).to(device)
 	if diff_args.distributed:
