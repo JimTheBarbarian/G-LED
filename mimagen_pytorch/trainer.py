@@ -10,7 +10,9 @@ from collections.abc import Iterable
 import torch
 from torch import nn
 import torch.nn.functional as F
-from torch.utils.data import random_split, DataLoader
+import torch.distributed as dist
+from torch.nn.parallel import DistributedDataParallel as DDP
+from torch.utils.data import random_split, DataLoader, DistributedSampler
 from torch.optim import Adam
 from torch.optim.lr_scheduler import CosineAnnealingLR, LambdaLR
 from torch.cuda.amp import autocast, GradScaler
@@ -28,7 +30,6 @@ import numpy as np
 
 from ema_pytorch import EMA
 
-from accelerate import Accelerator, DistributedType, DistributedDataParallelKwargs
 
 from fsspec.core import url_to_fs
 from fsspec.implementations.local import LocalFileSystem
@@ -88,16 +89,15 @@ def num_to_groups(num, divisor):
 
 # url to fs, bucket, path - for checkpointing to cloud
 
-def url_to_bucket(url):
-    if '://' not in url:
-        return url
+#def url_to_bucket(url):
+#    if '://' not in url:#        return url
 
-    _, suffix = url.split('://')
+#    _, suffix = url.split('://')
 
-    if prefix in {'gs', 's3'}:
-        return suffix.split('/')[0]
-    else:
-        raise ValueError(f'storage type prefix "{prefix}" is not supported yet')
+#    if prefix in {'gs', 's3'}:
+#        return suffix.split('/')[0]
+#    else:
+#        raise ValueError(f'storage type prefix "{prefix}" is not supported yet')
 
 # decorators
 
@@ -240,9 +240,10 @@ class ImagenTrainer(nn.Module):
         warmup_steps = None,
         cosine_decay_max_steps = None,
         only_train_unet_number = None,
-        fp16 = False,
-        precision = None,
-        split_batches = True,
+        fp16 = True,
+        use_ddp = True,
+        #precision = None,
+        #split_batches = True,
         dl_tuple_output_keywords_names = ('images', 'text_embeds', 'text_masks', 'cond_images'),
         verbose = True,
         split_valid_fraction = 0.025,
@@ -275,30 +276,13 @@ class ImagenTrainer(nn.Module):
 
         self.is_elucidated = isinstance(imagen, ElucidatedImagen)
 
-        # create accelerator instance
-
-        accelerate_kwargs, kwargs = groupby_prefix_and_trim('accelerate_', kwargs)
-        assert not (fp16 and exists(precision)), 'either set fp16 = True or forward the precision ("fp16", "bf16") to Accelerator'
-        accelerator_mixed_precision = default(precision, 'fp16' if fp16 else 'no')
-        self.accelerator = Accelerator(**{
-            'split_batches': split_batches,
-            'mixed_precision': accelerator_mixed_precision,
-            'kwargs_handlers': [DistributedDataParallelKwargs(find_unused_parameters = True)]
-        , **accelerate_kwargs})
-        
-
-        self.accelerator.state.device = device
         self.mydevice = device
         
         ImagenTrainer.locked = self.is_distributed
 
         # cast data to fp16 at training time if needed
 
-        self.cast_half_at_training = accelerator_mixed_precision == 'fp16'
-
-        # grad scaler must be managed outside of accelerator
-
-        grad_scaler_enabled = fp16
+        self.grad_scaler_enabled = fp16
 
         # imagen, unets and ema unets
 
@@ -348,7 +332,7 @@ class ImagenTrainer(nn.Module):
             if self.use_ema:
                 self.ema_unets.append(EMA(unet, **ema_kwargs))
 
-            scaler = GradScaler(enabled = grad_scaler_enabled)
+            scaler = GradScaler(enabled = self.grad_scaler_enabled)
 
             scheduler = warmup_scheduler = None
 
@@ -378,7 +362,6 @@ class ImagenTrainer(nn.Module):
 
         self.verbose = verbose
 
-        # automatic set devices based on what accelerator decided
         self.imagen.to(self.device) # original
         self.to(self.device) #original
 
@@ -394,10 +377,10 @@ class ImagenTrainer(nn.Module):
         self.can_checkpoint = self.is_local_main if isinstance(checkpoint_fs, LocalFileSystem) else self.is_main
 
         if exists(checkpoint_path) and self.can_checkpoint:
-            bucket = url_to_bucket(checkpoint_path)
+            #bucket = url_to_bucket(checkpoint_path)
 
-            if not self.fs.exists(bucket):
-                self.fs.mkdir(bucket)
+            if not self.fs.exists(checkpoint_path):
+                self.fs.mkdir(checkpoint_path)
 
             self.load_from_checkpoint_folder()
 
@@ -413,25 +396,24 @@ class ImagenTrainer(nn.Module):
         self.prepared = True
     # computed values
 
-    @property
-    def device(self):
-        return self.accelerator.device
+
 
     @property
     def is_distributed(self):
-        return not (self.accelerator.distributed_type == DistributedType.NO and self.accelerator.num_processes == 1)
+        return self.use_ddp and dist.is_initialized() and self.world_size > 1
 
     @property
     def is_main(self):
-        return self.accelerator.is_main_process
+        return self.rank == 0
 
     @property
     def is_local_main(self):
-        return self.accelerator.is_local_main_process
+        return self.rank == 0
 
     @property
     def unwrapped_unet(self):
-        return self.accelerator.unwrap_model(self.unet_being_trained)
+        if self.use_ddp:
+            return self.unet_being_trained_ddp.module
 
     # optimizer helper functions
 
@@ -461,45 +443,47 @@ class ImagenTrainer(nn.Module):
 
     def wrap_unet(self, unet_number):
         if hasattr(self, 'one_unet_wrapped'):
+            unet = self.imagen.get_unet(unet_number).to(self.device)
+            if self.use_ddp:
+                self.unet_being_trained_ddp = DDP(unet,device_ids=[self.device], output_device=self.device, find_unused_parameters=True)
+            else:
+                self.unet_being_trained_ddp = unet
             return
-
-        unet = self.imagen.get_unet(unet_number)
+        unet = self.imagen.get_unet(unet_number).to(self.device)
         unet_index = unet_number - 1
 
-        optimizer = getattr(self, f'optim{unet_index}')
+        model_to_optimize = self.unet_being_trained_ddp
+        lr, eps, beta1, beta2 = 1e-4, 1e-8, 0.9, 0.99
+        optimizer= Adam(
+            model_to_optimize.parameters(),
+            lr = lr,
+            eps = eps,
+            betas = (beta1, beta2)
+        )
+        setattr(self, f'optim{unet_index}', optimizer)
         scheduler = getattr(self, f'scheduler{unet_index}')
 
-        if self.train_dl:
-            self.unet_being_trained, self.train_dl, optimizer = self.accelerator.prepare(unet, self.train_dl, optimizer)
-        else:
-            self.unet_being_trained, optimizer = self.accelerator.prepare(unet, optimizer)
-            
-
-        if exists(scheduler):
-            scheduler = self.accelerator.prepare(scheduler)
-
-        setattr(self, f'optim{unet_index}', optimizer)
-        setattr(self, f'scheduler{unet_index}', scheduler)
+        
 
         self.one_unet_wrapped = True
 
     # hacking accelerator due to not having separate gradscaler per optimizer
-    def set_accelerator_scaler(self, unet_number):
-         def patch_optimizer_step(accelerated_optimizer, method):
-             def patched_step(*args, **kwargs):
-                 accelerated_optimizer._accelerate_step_called = True
-                 return method(*args, **kwargs)
-             return patched_step
+    #def set_accelerator_scaler(self, unet_number):
+    #     def patch_optimizer_step(accelerated_optimizer, method):
+    #         def patched_step(*args, **kwargs):
+    #             accelerated_optimizer._accelerate_step_called = True
+    #             return method(*args, **kwargs)
+    #         return patched_step
 
-         unet_number = self.validate_unet_number(unet_number)
-         scaler = getattr(self, f'scaler{unet_number - 1}')
+    #     unet_number = self.validate_unet_number(unet_number)
+    #     scaler = getattr(self, f'scaler{unet_number - 1}')
 
-         self.accelerator.scaler = scaler
-         for optimizer in self.accelerator._optimizers:
-             optimizer.scaler = scaler
-             optimizer._accelerate_step_called = False
-             optimizer._optimizer_original_step_method = optimizer.optimizer.step
-             optimizer._optimizer_patched_step_method = patch_optimizer_step(optimizer, optimizer.optimizer.step)
+    #     self.accelerator.scaler = scaler
+    #     for optimizer in self.accelerator._optimizers:
+    #         optimizer.scaler = scaler
+    #         optimizer._accelerate_step_called = False
+    #         optimizer._optimizer_original_step_method = optimizer.optimizer.step
+    #         optimizer._optimizer_patched_step_method = patch_optimizer_step(optimizer, optimizer.optimizer.step)
     # def set_accelerator_scaler(self, unet_number):
     #     unet_number = self.validate_unet_number(unet_number)
     #     scaler = getattr(self, f'scaler{unet_number - 1}')
@@ -517,7 +501,7 @@ class ImagenTrainer(nn.Module):
         if not self.verbose:
             return
 
-        return self.accelerator.print(msg)
+        return 
 
     # validating the unet number
 
@@ -556,8 +540,13 @@ class ImagenTrainer(nn.Module):
             return
 
         assert not exists(self.train_dl), 'training dataloader was already added'
-        assert not self.prepared, f'You need to add the dataset before preperation'
-        self.train_dl = dl
+        
+        if self.use_ddp:
+            sampler = DistributedSampler(dl.dataset, num_replicas = self.world_size, rank = self.rank, shuffle = True)
+            dl = DataLoader(dl.dataset, batch_size = dl.batch_size, sampler = sampler, num_workers = dl.num_workers, pin_memory = dl.pin_memory, drop_last = dl.drop_last)
+        self.train_dl = dl 
+
+
 
     def add_valid_dataloader(self, dl):
         if not exists(dl):
@@ -692,7 +681,11 @@ class ImagenTrainer(nn.Module):
         without_optim_and_sched = False,
         **kwargs
     ):
-        self.accelerator.wait_for_everyone()
+        if self.use_ddp:
+            dist.barrier()
+        
+        if not self.is_main: #only save on rank 0
+            return
 
         if not self.can_checkpoint:
             return
@@ -703,37 +696,34 @@ class ImagenTrainer(nn.Module):
 
         self.reset_ema_unets_all_one_device()
 
+        model_state_dict = self.imagen.module.state_dict() if self.use_ddp else self.imagen.state_dict()
+
         save_obj = dict(
-            model = self.imagen.state_dict(),
+            model = model_state_dict,
             version = __version__,
             steps = self.steps.cpu(),
             **kwargs
         )
 
-        save_optim_and_sched_iter = range(0, self.num_unets) if not without_optim_and_sched else tuple()
 
-        for ind in save_optim_and_sched_iter:
-            scaler_key = f'scaler{ind}'
-            optimizer_key = f'optim{ind}'
-            scheduler_key = f'scheduler{ind}'
-            warmup_scheduler_key = f'warmup{ind}'
+        for ind in range(0, self.num_unets):
 
-            scaler = getattr(self, scaler_key)
-            optimizer = getattr(self, optimizer_key)
-            scheduler = getattr(self, scheduler_key)
-            warmup_scheduler = getattr(self, warmup_scheduler_key)
+            scaler = getattr(self, f'scaler{ind}')
+            optimizer = getattr(self, f'optim{ind}')
+            scheduler = getattr(self, f'scheduler{ind}')
+            warmup_scheduler = getattr(self, f'warmup{ind}')
 
-            if exists(scheduler):
-                save_obj = {**save_obj, scheduler_key: scheduler.state_dict()}
-
-            if exists(warmup_scheduler):
-                save_obj = {**save_obj, warmup_scheduler_key: warmup_scheduler.state_dict()}
-
-            save_obj = {**save_obj, scaler_key: scaler.state_dict(), optimizer_key: optimizer.state_dict()}
-
+            if not without_optim_and_sched:
+                if exists(optimizer): save_obj[f'optim{ind}'] = optimizer.state_dict()
+                if exists(scaler): save_obj[f'scaler{ind}'] = scaler.state_dict()
+                if exists(scheduler): save_obj[f'scheduler{ind}'] = scheduler.state_dict()
+                if exists(warmup_scheduler): save_obj[f'warmup{ind}'] = warmup_scheduler.state_dict()
+        
+        
         if self.use_ema:
+            self.reset_ema_unets_all_one_device(device='cpu')
             save_obj = {**save_obj, 'ema': self.ema_unets.state_dict()}
-
+            self.reset_ema_unets_all_one_device(device=self.device)
         # determine if imagen config is available
 
         if hasattr(self.imagen, '_config'):
@@ -913,7 +903,7 @@ class ImagenTrainer(nn.Module):
     def update(self, unet_number = None):
         unet_number = self.validate_unet_number(unet_number)
         self.validate_and_set_unet_being_trained(unet_number)
-        self.set_accelerator_scaler(unet_number)
+        #self.set_accelerator_scaler(unet_number)
 
         index = unet_number - 1
         unet = self.unet_being_trained
@@ -926,9 +916,15 @@ class ImagenTrainer(nn.Module):
         # set the grad scaler on the accelerator, since we are managing one per u-net
 
         if exists(self.max_grad_norm):
-            self.accelerator.clip_grad_norm_(unet.parameters(), self.max_grad_norm)
+            if self.grad_scaler_enabled:
+                scaler.unscale_(optimizer)
+            torch.nn.utils.clip_grad_norm_(unet.parameters(), self.max_grad_norm)
         
-        optimizer.step()
+        if self.grad_scaler_enabled:
+            scaler.step(optimizer)
+            scaler.update()
+        else:
+            optimizer.step()
         optimizer.zero_grad()
 
         if self.use_ema:
@@ -940,20 +936,21 @@ class ImagenTrainer(nn.Module):
         maybe_warmup_context = nullcontext() if not exists(warmup_scheduler) else warmup_scheduler.dampening()
 
         with maybe_warmup_context:
-            if exists(scheduler) and not self.accelerator.optimizer_step_was_skipped: # recommended in the docs
+            if exists(scheduler): #and not self.accelerator.optimizer_step_was_skipped:  recommended in the docs
                 scheduler.step()
 
-        self.steps += F.one_hot(torch.tensor(unet_number - 1, device = self.steps.device), num_classes = len(self.steps))
-
+        #self.steps += F.one_hot(torch.tensor(unet_number - 1, device = self.steps.device), num_classes = len(self.steps))
+        self.steps[index] += 1
         if not exists(self.checkpoint_path):
             return
+        if self.is_main:
 
-        total_steps = int(self.steps.sum().item())
+            total_steps = int(self.steps.sum().item())
 
-        if total_steps % self.checkpoint_every:
-            return
+            if total_steps % self.checkpoint_every == 0:
+                self.save_to_checkpoint_folder()
+            
 
-        self.save_to_checkpoint_folder()
 
     @torch.no_grad()
     @cast_torch_tensor
@@ -981,21 +978,29 @@ class ImagenTrainer(nn.Module):
     ):
         unet_number = self.validate_unet_number(unet_number)
         self.validate_and_set_unet_being_trained(unet_number)
-        self.set_accelerator_scaler(unet_number)
+        #self.set_accelerator_scaler(unet_number)
 
         assert not exists(self.only_train_unet_number) or self.only_train_unet_number == unet_number, f'you can only train unet #{self.only_train_unet_number}'
 
         total_loss = 0.
+        unet_index = unet_number - 1
+        scaler = getattr(self, f'scaler{unet_index}')
+        
         #print(args[0].device)
-        for chunk_size_frac, (chunked_args, chunked_kwargs) in split_args_and_kwargs(*args, split_size = max_batch_size, **kwargs):
-            with self.accelerator.autocast():
-                self.accelerator.state.device = self.mydevice # Han Gao added
-                loss = self.imagen(*chunked_args, unet = self.unet_being_trained, unet_number = unet_number, **chunked_kwargs)
-                loss = loss * chunk_size_frac
+        #for chunk_size_frac, (chunked_args, chunked_kwargs) in split_args_and_kwargs(*args, split_size = max_batch_size, **kwargs):
+        #    with self.accelerator.autocast():
+        #        self.accelerator.state.device = self.mydevice # Han Gao added
+        #        loss = self.imagen(*chunked_args, unet = self.unet_being_trained, unet_number = unet_number, **chunked_kwargs)
+        #        loss = loss * chunk_size_frac
 
-            total_loss += loss.item()
+        with autocast(enabled = self.cast_half_at_training):
+            loss = self.imagen(*args, unet = self.unet_being_trained, unet_number = unet_number, **kwargs)
+        total_loss += loss.item()
 
-            if self.training:
-                self.accelerator.backward(loss)
+        if self.training:
+            if self.grad_scaler_enabled:
+                scaler.scale(loss).backward()
+            else:
+                loss.backward()
 
         return total_loss

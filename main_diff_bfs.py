@@ -87,7 +87,7 @@ if __name__ == '__main__':
 	"""
 	Fetch dataset
 	"""
-	data_set = bfs_dataset(data_location  = seq_args.data_location,
+	data_set = bfs_dataset(
 						   trajec_max_len = diff_args.Nt,#seq_args.trajec_max_len,
 						   start_n        = seq_args.start_n,
 						   n_span         = seq_args.n_span)
@@ -102,13 +102,13 @@ if __name__ == '__main__':
 				   cond_images_channels=2, 
 				   memory_efficient=True, 
 				   dim_mults=(1, 2, 4, 8)).to(torch.device(diff_args.device))  #mid: mid channel
-	image_sizes = (512)
-	image_width = (512)
+	image_sizes = (1)
+	image_width = (64)
 	imagen = ElucidatedImagen(
 		unets = (unet1),
 		image_sizes = image_sizes,
 		image_width = image_width,   
-		channels = 2,   # Han Gao add the input to this args explicity     
+		channels = 1,   # Han Gao add the input to this args explicity     
 		random_crop_sizes = None,
 		num_sample_steps = diff_args.num_sample_steps, # original is 10
 		cond_drop_prob = 0.1,

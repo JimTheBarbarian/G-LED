@@ -13,9 +13,9 @@ def train_diff(diff_args,
 			   data_loader):
 	loss_list = []
 	for epoch in range(diff_args.epoch_num):
-		down_sampler = torch.nn.Upsample(size=seq_args.coarse_dim, 
+		down_sampler = torch.nn.Upsample(size=[1,seq_args.coarse_dim], 
 								     	 mode=seq_args.coarse_mode)
-		up_sampler   = torch.nn.Upsample(size=[512, 512], 
+		up_sampler   = torch.nn.Upsample(size=[1, 64], 
 								     	 mode=seq_args.coarse_mode)
 		model, loss = train_epoch(diff_args,seq_args, trainer, data_loader,down_sampler,up_sampler)
 		if epoch % 1 ==0 and epoch > 0:
@@ -40,8 +40,9 @@ def train_epoch(diff_args,seq_args, trainer, data_loader,down_sampler,up_sampler
 		batch = batch.to(diff_args.device).float()
 		bsize = batch.shape[0]
 		ntime = batch.shape[1] 
-		batch_coarse      = down_sampler(batch.reshape([bsize*ntime,2,512,512]))
-		batch_coarse2fine = up_sampler(batch_coarse).reshape(batch.shape)
+		batch_coarse      = down_sampler(batch.reshape([bsize*ntime,1,1,64]))
+		batch_coarse2fine = up_sampler(batch_coarse).reshape([bsize,ntime,1,1,64])
+
 		#need # B x F x T x H x W
 		batch= batch.permute([0,2,1,3,4])
 		batch_coarse2fine = batch_coarse2fine.permute([0,2,1,3,4])
