@@ -1118,7 +1118,7 @@ class Unet3D(nn.Module):
         learned_sinu_pos_emb_dim = 16,
         out_dim = None,
         dim_mults=(1, 2, 4, 8),
-        cond_images_channels = 0,
+        cond_images_channels = 1,
         channels = 3,
         channels_out = None,
         attn_dim_head = 64,

@@ -83,7 +83,7 @@ class ElucidatedImagen(nn.Module):
             image_width,
             #text_encoder_name=DEFAULT_T5_NAME,
             #text_embed_dim=None,
-            channels=3,
+            channels=1,
             cond_drop_prob=0.1,
             random_crop_sizes=None,
             lowres_sample_noise_level=0.2,
