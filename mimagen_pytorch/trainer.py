@@ -278,7 +278,7 @@ class ImagenTrainer(nn.Module):
 
         self.mydevice = device
         
-        ImagenTrainer.locked = self.is_distributed
+        ImagenTrainer.locked = use_ddp
 
         # cast data to fp16 at training time if needed
 
