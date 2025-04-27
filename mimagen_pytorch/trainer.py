@@ -272,7 +272,7 @@ class ImagenTrainer(nn.Module):
         super().__init__()
         assert not ImagenTrainer.locked, 'ImagenTrainer can only be initialized once per process - for the sake of distributed training, you will now have to create a separate script to train each unet (or a script that accepts unet number as an argument)'
         assert exists(imagen) ^ exists(imagen_checkpoint_path), 'either imagen instance is passed into the trainer, or a checkpoint path that contains the imagen config'
-
+        self.use_ddp = use_ddp
         # determine filesystem, using fsspec, for saving to local filesystem or cloud
 
         self.fs = checkpoint_fs

@@ -192,7 +192,7 @@ if __name__ == '__main__':
 		).to(device)
 	#if diff_args.distributed:
 		#imagen = DDP(imagen, device_ids=[diff_args.local_rank], output_device=diff_args.local_rank)
-	trainer = ImagenTrainer(imagen, device =device, distributed=diff_args.distributed)
+	trainer = ImagenTrainer(imagen, device =device, use_ddp=diff_args.distributed)
 	train_diff(diff_args=diff_args,
                seq_args=seq_args,
                trainer=trainer,
