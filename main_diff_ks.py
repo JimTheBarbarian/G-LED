@@ -13,7 +13,7 @@ import json
 """
 Internal pacakage
 """
-from main_seq_bfs import Args as SEQ_ARGS
+from main_seq_ks import Args as SEQ_ARGS
 from mimagen_pytorch import Unet3D, ElucidatedImagen, ImagenTrainer
 
 sys.path.insert(0, './util')
