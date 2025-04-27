@@ -28,7 +28,7 @@ from packaging import version
 
 import numpy as np
 
-from ema_pytorch import EMA
+from utils.ema_pytorch import EMA
 
 
 from fsspec.core import url_to_fs
