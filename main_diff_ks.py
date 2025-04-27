@@ -120,8 +120,8 @@ if __name__ == '__main__':
 			torch.cuda.set_device(diff_args.local_rank)
 			diff_args.device = f'cuda:{diff_args.local_rank}'
 			# Setup environment variables if not set by launcher
-			os.environ['MASTER_ADDR'] = diff_args.master_addr
-			os.environ['MASTER_PORT'] = diff_args.master_port
+			#os.environ['MASTER_ADDR'] = diff_args.master_addr
+			#os.environ['MASTER_PORT'] = diff_args.master_port
 			dist.init_process_group(backend=diff_args.dist_backend, init_method='env://', world_size=diff_args.world_size, rank=diff_args.local_rank)
 			print(f"Process group initialized for rank {diff_args.local_rank}.")
 		else:
@@ -150,7 +150,7 @@ if __name__ == '__main__':
 	data_set = bfs_dataset(
 						   trajec_max_len = diff_args.Nt,#seq_args.trajec_max_len,
 						   start_n        = seq_args.start_n,
-						   n_span         = seq_args.n_span)
+						   )
 	sampler = DistributedSampler(data_set, shuffle = diff_args.shuffle) if diff_args.distributed else None
 	data_loader = DataLoader(dataset=data_set, 
 						  	sampler=sampler,
