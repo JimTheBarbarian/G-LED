@@ -53,9 +53,6 @@ def train_epoch(diff_args,seq_args, trainer, data_loader,down_sampler,up_sampler
 		loss=trainer(images,cond_images=cond_images,unet_number=1,ignore_time=False)
 		trainer.update(unet_number=1)
 		print("loss is ", loss)
-		if torch.isnan(loss):
-			pdb.set_trace()
-		if torch.isinf(loss):
-			pdb.set_trace()
+	
 		loss_epoch.append(loss)
 	return trainer, sum(loss_epoch)/len(loss_epoch)
