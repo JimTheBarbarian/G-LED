@@ -80,7 +80,7 @@ def test_epoch(args,
 														 args.coarse_dim])
 			
 
-			warm_start_coarse = batch_coarse_flatten[:,warm_start_len:,:]
+			warm_start_coarse = batch_coarse_flatten[:,:warm_start_len,:]
 			past = None
 			xn = warm_start_coarse[:,0:1,:]
 			previous_len = warm_start_len
