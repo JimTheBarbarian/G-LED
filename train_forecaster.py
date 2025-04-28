@@ -28,7 +28,7 @@ from torch.utils.data import DataLoader, Dataset
 from forecasting_models import FWin, informer, iTransformer
 from layers.embed import DataEmbedding, DataEmbedding_inverted
 
-from layers.attention import ProbAttention, FullAttention, AttentionLayerWin, AttentionLayerCrossWin
+from layers.SelfAttention_Family import ProbAttention, FullAttention, AttentionLayerWin, AttentionLayerCrossWin
 from layers.Transformer_EncDec import ConvLayer, EncoderLayer, Encoder, FourierMix, DecoderLayerWithFourier, Decoder
 
 
