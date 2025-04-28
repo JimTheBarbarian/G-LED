@@ -60,4 +60,4 @@ def train_epoch(diff_args,seq_args, trainer, data_loader,down_sampler,up_sampler
 		print("loss is ", loss)
 	
 		loss_epoch.append(loss)
-	return trainer, sum(loss_epoch)/len(loss_epoch)
+	return trainer, loss_epoch

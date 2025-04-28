@@ -65,7 +65,7 @@ def save_loss(args, loss_list, Nt,):
 	plt.yscale('log')
 	plt.xlabel('epoch')
 	plt.ylabel('loss')
-	plt.title(str(min(loss_list))+'Nt'+str(Nt))
+	plt.title('Training loss curve')
 	print(os.path.join(args.logging_path, 'loss_curve.png'))
 	plt.savefig(os.path.join(args.logging_path, 'loss_curve.png'))
 	plt.close()
