@@ -254,6 +254,7 @@ def main():
     parser.add_argument('--d_ff', type=int, default=2048, help='Dimension of feedforward network')
     parser.add_argument('--dropout', type=float, default=0.1, help='Dropout rate')
     parser.add_argument('--activation', type=str, default='relu', help='Activation function')
+    parser.add_argument('--output_attention', action='store_true', help='Output attention weights')
     # DLinear specific
     parser.add_argument('--individual', action='store_true', help='Individual channels for DLinear')
 
