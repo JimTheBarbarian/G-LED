@@ -210,7 +210,7 @@ def create_model(args, device):
     if args.model_name == 'FWin':
          # Assuming FWin has a specific signature
          # Ensure forecasting_models.FWin.Model exists and check its signature
-         model = FWin(seq_len=args.input_len, out_len=args.pred_len, enc_in=args.enc_in,dec_in=args.dec_in,c_out=args.c_out).to(device) # Placeholder signature
+         model = FWin(seq_len=args.input_len, label_len = args.label_len, out_len=args.pred_len, enc_in=args.enc_in,dec_in=args.dec_in,c_out=args.c_out).to(device) # Placeholder signature
     elif args.model_name == 'informer':
         # Informer likely uses many of the transformer args
         # Ensure forecasting_models.informer.Model exists and check its signature
