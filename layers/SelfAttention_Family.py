@@ -291,9 +291,7 @@ class AttentionLayer(nn.Module):
             queries,
             keys,
             values,
-            attn_mask,
-            tau=tau,
-            delta=delta
+            attn_mask
         )
         out = out.view(B, L, -1)
 
