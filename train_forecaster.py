@@ -76,7 +76,10 @@ def train_test_seq(args, model, train_loader, sampler_train, valid_loader, test_
         best_model_path = os.path.join(args.output_dir, f"{args.model_name}_best.pt")
         if os.path.exists(best_model_path):
              # Need to instantiate a non-DDP model to load state_dict easily
-            model_instance = create_model(args, device=args.gpu) # Helper function to create model
+            if args.model_name == 'informer':
+                model_instance = informer(args).to(args.gpu) # Pass model_args for informer
+            elif args.model_name == 'iTransformer':
+                model_instance = iTransformer.Model(args).to(args.gpu)
             model_instance.load_state_dict(torch.load(best_model_path, map_location=args.gpu))
             model_instance.eval()
             print(f"Loaded best model from {best_model_path} for testing.")
