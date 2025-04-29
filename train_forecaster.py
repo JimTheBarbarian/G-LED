@@ -278,6 +278,8 @@ def main():
         args.distributed = True
         setup_for_distributed(args.local_rank != -1) # Pass True if using DDP
         args.gpu = args.local_rank # Assign gpu based on local rank
+        args.rank = dist.get_rank()
+        args.world_size = dist.get_world_size()
         device = torch.device("cuda", args.gpu)
     else:
         # Fallback for non-distributed execution (optional)
