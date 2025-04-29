@@ -25,7 +25,9 @@ from data_ks_preprocess import bfs_dataset
 from utils import save_model, is_main_process, setup_for_distributed # Assuming setup_for_distributed exists
 from torch.utils.data import DataLoader, Dataset
 # Assuming these models exist in forecasting_models.py
-from forecasting_models import FWin, informer, iTransformer
+from forecasting_models.FWin import FWin
+from forecasting_models.informer import informer
+from forecasting_models.iTransformer import iTransformer
 from layers.embed import DataEmbedding, DataEmbedding_inverted
 
 from layers.SelfAttention_Family import ProbAttention, FullAttention, AttentionLayerWin, AttentionLayerCrossWin
