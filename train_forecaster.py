@@ -275,21 +275,33 @@ def main():
     # and potentially set args.distributed = True
     if "LOCAL_RANK" in os.environ:
         args.local_rank = int(os.environ["LOCAL_RANK"])
-        args.distributed = True
-        setup_for_distributed(args.local_rank != -1) # Pass True if using DDP
-        args.gpu = args.local_rank # Assign gpu based on local rank
-        args.rank = dist.get_rank()
-        args.world_size = dist.get_world_size()
-        device = torch.device("cuda", args.gpu)
+        if args.local_rank != -1:
+            
+            args.device = f'cuda:{args.local_rank}'
+            torch.cuda.set_device(args.local_rank)
+        else:
+            args.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    
+    # +++ Initialize distributed environment
+    if "WORLD_SIZE" in os.environ:
+        args.world_size = int(os.environ["WORLD_SIZE"])
+        args.distributed = args.world_size > 1
     else:
-        # Fallback for non-distributed execution (optional)
-        print("Running in non-distributed mode.")
-        args.distributed = False
-        args.gpu = 0 # Default to GPU 0 or CPU
-        args.rank = 0
         args.world_size = 1
-        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        args.distributed = False
 
+    if args.distributed:
+        print(f"Initializing process group for rank {args.local_rank}...")
+        dist.init_process_group(backend='nccl', init_method='env://')
+        # Ensure setup_for_distributed is called after init_process_group
+        setup_for_distributed(args.local_rank == 0) # Pass is_main_process flag
+        print(f"Process group initialized for rank {args.local_rank}.")
+    else:
+        # Still call setup for non-distributed case to set the flag
+        setup_for_distributed(True) 
+
+    args.gpu = args.local_rank if args.distributed else 0 # Set GPU for DDP or single process
+    device = torch.device('cuda',args.gpu) # Use the device set above
 
     # --- Seed ---
     random.seed(args.seed)
