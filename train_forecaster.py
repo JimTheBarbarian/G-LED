@@ -179,9 +179,9 @@ def test_epoch(args, model, test_loader,device):
     
     valid_indices = sum_target_norm_sq_per_step > 1e-9
     mean_relative_errors_per_step[valid_indices] = sum_mse_per_step[valid_indices] / sum_target_norm_sq_per_step[valid_indices]
-
+    start = torch.zeros(args.input_len, device=device).cpu().numpy()
+    mean_relative_errors_per_step = torch.cat((start, mean_relative_errors_per_step), dim=0) # Concatenate zeros for input length
     mean_relative_errors_per_step_np = mean_relative_errors_per_step.cpu().numpy()
-
     return mean_relative_errors_per_step_np
 
 # Helper function to create model instance (avoids code duplication)
@@ -320,23 +320,29 @@ def main():
     if is_main_process(): print("Datasets loaded.")
 
     # --- Instantiate Model ---
-    if is_main_process(): print(f"Creating model: {args.model_name}")
-    model = create_model(args, device=device) # Create on the correct device
+    base_output_dir = args.output_dir # Base output directory for saving models
+    for model_name in ['FWin', 'informer', 'iTransformer']:
+        args.model_name = model_name
+        args.output_dir = os.path.join(base_output_dir, args.model_name) # Set model-specific output dir
+        if is_main_process():
+            os.makedirs(args.output_dir, exist_ok=True) # Create model-specific output dir if it doesn't exist
+        if is_main_process(): print(f"Creating model: {args.model_name}")
+        model = create_model(args, device=device) # Create on the correct device
 
-    if args.distributed:
-        model = DDP(model, device_ids=[args.gpu], output_device=args.gpu, find_unused_parameters=True) # Adjust find_unused_parameters if needed
-    if is_main_process(): print(f"Model created on device: {device}")
+        if args.distributed:
+            model = DDP(model, device_ids=[args.gpu], output_device=args.gpu, find_unused_parameters=True) # Adjust find_unused_parameters if needed
+        if is_main_process(): print(f"Model created on device: {device}")
 
 
-    # --- Optimizer and Scheduler ---
-    optimizer = optim.Adam(model.parameters(), lr=args.learning_rate)
-    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=args.scheduler_step_size, gamma=args.scheduler_gamma)
+        # --- Optimizer and Scheduler ---
+        optimizer = optim.Adam(model.parameters(), lr=args.learning_rate)
+        scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=args.scheduler_step_size, gamma=args.scheduler_gamma)
 
-    # --- Run Training ---
-    if is_main_process():
-        print(f"\nStarting training for {args.model_name}...")
+        # --- Run Training ---
+        if is_main_process():
+            print(f"\nStarting training for {args.model_name}...")
 
-    error_curve = train_test_seq(
+        error_curve = train_test_seq(
         args=args,
         model=model, # Pass the DDP model
         train_loader=train_loader,
@@ -346,23 +352,40 @@ def main():
         optimizer=optimizer,
         scheduler=scheduler,
         num_epochs=args.num_epochs
-    )
+        )
 
     # --- Save Final Results (Optional) ---
-    if is_main_process():
-        print("\nTraining finished.")
+        if is_main_process():
+            print(f"\nTraining finished for {args.model_name}.")
         # Save the final model state dict (optional, usually best model is preferred)
         # model_save_path = os.path.join(args.output_dir, f"{args.model_name}_final_epoch.pt")
         # torch.save(final_model.module.state_dict(), model_save_path) # Save the underlying model
         # print(f"Final epoch model saved to {model_save_path}")
 
         # Save error curve if generated
-        if error_curve is not None:
-            error_curve_path = os.path.join(args.output_dir, f"{args.model_name}_test_error_curve.npy")
-            np.save(error_curve_path, error_curve)
-            print(f"Test error curve saved to {error_curve_path}")
+            if error_curve is not None:
+                plt.figure(figsize=(10, 6))
+                t_values = np.arange(0, args.pred_len + args.input_len)
+                plt.semilogy(t_values, error_curve) # Use absolute time steps for x-axis
+                plt.xlabel('t (Time Step Index)')
+                plt.ylabel('e(t) (Mean Relative Error)')
+                plt.title(f'{args.model_name} - Test Error Curve')
+                plt.grid(True, which='both', linestyle='--', linewidth=0.5)
+                # Add vertical line at the end of the input sequence
+                plt.axvline(x=args.input_len, color='r', linestyle='--', label=f'Input End (t={args.input_len})')
 
+                # Adjust x-limits to show context around input/prediction boundary
+                plot_xlim_start = 0
+                plot_xlim_end = args.input_len + args.pred_len
+                plt.xlim(plot_xlim_start, plot_xlim_end)
 
+                # Add legend
+                plt.legend()
+
+                plot_path = os.path.join(args.output_dir, f"{args.model_name}_test_error_plot.png")
+                plt.savefig(plot_path)
+                plt.close() # Close the plot to free memory
+                print(f"Test error plot saved to {plot_path}")
     # --- Cleanup ---
     if args.distributed:
         dist.destroy_process_group()
