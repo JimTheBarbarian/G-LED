@@ -323,14 +323,14 @@ def main():
     valid_dataset = bfs_dataset(data_location=args.data_location, trajec_max_len=args.sample_len, val_split=args.val_split, test_split=args.test_split, flag='val')
     test_dataset = bfs_dataset(data_location=args.data_location, trajec_max_len=args.sample_len, val_split=args.val_split, test_split=args.test_split, flag='test')
 
-    train_sampler = DistributedSampler(train_dataset, num_replicas=args.world_size, rank=args.rank, shuffle=True) if args.distributed else None
+    train_sampler = DistributedSampler(train_dataset, shuffle=True) if args.distributed else None
     valid_sampler = None # Typically no need to sample validation/test in DDP
     test_sampler = None
 
     train_loader = DataLoader(train_dataset, batch_size=args.batch_size, sampler=train_sampler, num_workers=args.num_workers, pin_memory=True, drop_last=True, shuffle=(train_sampler is None))
     # Use larger batch size for validation/testing if memory allows
-    valid_loader = DataLoader(valid_dataset, batch_size=args.batch_size * 2, sampler=valid_sampler, num_workers=args.num_workers, pin_memory=True, shuffle=False)
-    test_loader = DataLoader(test_dataset, batch_size=args.batch_size * 2, sampler=test_sampler, num_workers=args.num_workers, pin_memory=True, shuffle=False)
+    valid_loader = DataLoader(valid_dataset, batch_size=args.batch_size , sampler=valid_sampler, num_workers=args.num_workers, pin_memory=True, shuffle=False)
+    test_loader = DataLoader(test_dataset, batch_size=args.batch_size , sampler=test_sampler, num_workers=args.num_workers, pin_memory=True, shuffle=False)
     if is_main_process(): print("Datasets loaded.")
 
     # --- Instantiate Model ---
@@ -344,7 +344,7 @@ def main():
         model = create_model(args, device=device) # Create on the correct device
 
         if args.distributed:
-            model = DDP(model, device_ids=[args.gpu], output_device=args.gpu, find_unused_parameters=True) # Adjust find_unused_parameters if needed
+            model = DDP(model, device_ids=[args.local_rank], output_device=args.local_rank, find_unused_parameters=True) # Adjust find_unused_parameters if needed
         if is_main_process(): print(f"Model created on device: {device}")
 
 
