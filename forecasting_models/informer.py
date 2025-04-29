@@ -6,26 +6,27 @@ from layers.SelfAttention_Family import ProbAttention, AttentionLayer
 from layers.embed import DataEmbedding
 
 
-class Model(nn.Module):
+class informer(nn.Module):
     """
     Informer with Propspare attention in O(LlogL) complexity
     Paper link: https://ojs.aaai.org/index.php/AAAI/article/view/17325/17132
     """
 
     def __init__(self, configs):
-        super(Model, self).__init__()
+        super(informer, self).__init__()
 
         self.pred_len = configs.pred_len
         self.label_len = configs.label_len
 
-        if configs.channel_independence:
-            self.enc_in = 1
-            self.dec_in = 1
-            self.c_out = 1
-        else:
-            self.enc_in = configs.enc_in
-            self.dec_in = configs.dec_in
-            self.c_out = configs.c_out
+        #if configs.channel_independence:
+        self.enc_in = 1
+        self.dec_in = 1
+        self.c_out = 1
+        self.distil = True
+        #else:
+        #    self.enc_in = configs.enc_in
+        #    self.dec_in = configs.dec_in
+        #    self.c_out = configs.c_out
 
         # Embedding
         self.enc_embedding = DataEmbedding(self.enc_in, configs.d_model, configs.embed, configs.freq,
@@ -51,7 +52,7 @@ class Model(nn.Module):
                 ConvLayer(
                     configs.d_model
                 ) for l in range(configs.e_layers - 1)
-            ] if configs.distil else None,
+            ] if self.distil else None,
             norm_layer=torch.nn.LayerNorm(configs.d_model)
         )
         # Decoder

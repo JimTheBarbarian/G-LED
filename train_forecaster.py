@@ -208,12 +208,12 @@ def create_model(args, device):
     if args.model_name == 'FWin':
          # Assuming FWin has a specific signature
          # Ensure forecasting_models.FWin.Model exists and check its signature
-         model = FWin.Model(seq_len=args.input_len, pred_len=args.pred_len, enc_in=args.enc_in).to(device) # Placeholder signature
+         model = FWin(seq_len=args.input_len, out_len=args.pred_len, enc_in=args.enc_in,dec_in=args.dec_in,c_out=args.c_out).to(device) # Placeholder signature
     elif args.model_name == 'informer':
         # Informer likely uses many of the transformer args
         # Ensure forecasting_models.informer.Model exists and check its signature
         # You might need to filter model_args to only pass expected arguments
-        model = informer.Model(**model_args).to(device)
+        model = informer(**model_args).to(device)
     elif args.model_name == 'iTransformer':
         # iTransformer likely uses many of the transformer args
         # Ensure forecasting_models.iTransformer.Model exists and check its signature
@@ -243,6 +243,7 @@ def main():
     parser.add_argument('--enc_in', type=int, default=64, help='Encoder input size (spatial dimension)') # Assuming 64 based on other files
     parser.add_argument('--dec_in', type=int, default=64, help='Decoder input size (spatial dimension)')
     parser.add_argument('--c_out', type=int, default=64, help='Output size (spatial dimension)')
+    parser.add_argument('--factor', type=int, default=5, help='')
     # Add common transformer args (might be ignored by simpler models)
     parser.add_argument('--d_model', type=int, default=512, help='Dimension of model')
     parser.add_argument('--n_heads', type=int, default=8, help='Number of heads')

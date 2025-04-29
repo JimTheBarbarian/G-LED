@@ -7,21 +7,21 @@ from layers.embed import DataEmbedding_inverted
 import numpy as np
 
 
-class Model(nn.Module):
+class iTransformer(nn.Module):
     """
     Paper link: https://arxiv.org/abs/2310.06625
     """
 
     def __init__(self, configs):
-        super(Model, self).__init__()
+        super(iTransformer, self).__init__()
         self.seq_len = configs.seq_len
         self.pred_len = configs.pred_len
         self.output_attention = configs.output_attention
-        self.use_norm = configs.use_norm
+        self.use_norm = True
         # Embedding
         self.enc_embedding = DataEmbedding_inverted(configs.seq_len, configs.d_model, configs.embed, configs.freq,
                                                     configs.dropout)
-        self.class_strategy = configs.class_strategy
+        #self.class_strategy = configs.class_strategy
         # Encoder-only architecture
         self.encoder = Encoder(
             [
