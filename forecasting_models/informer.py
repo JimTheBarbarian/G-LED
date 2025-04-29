@@ -29,9 +29,9 @@ class informer(nn.Module):
         #    self.c_out = configs.c_out
 
         # Embedding
-        self.enc_embedding = DataEmbedding(self.enc_in, configs.d_model, configs.embed, configs.freq,
+        self.enc_embedding = DataEmbedding(self.enc_in, configs.d_model, 
                                            configs.dropout)
-        self.dec_embedding = DataEmbedding(self.dec_in, configs.d_model, configs.embed, configs.freq,
+        self.dec_embedding = DataEmbedding(self.dec_in, configs.d_model, 
                                            configs.dropout)
 
         # Encoder
