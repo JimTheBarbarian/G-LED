@@ -246,6 +246,7 @@ def main():
     parser.add_argument('--dec_in', type=int, default=64, help='Decoder input size (spatial dimension)')
     parser.add_argument('--c_out', type=int, default=64, help='Output size (spatial dimension)')
     parser.add_argument('--factor', type=int, default=5, help='')
+    parser.add_argument('--distil', action='store_false', help='')
     # Add common transformer args (might be ignored by simpler models)
     parser.add_argument('--d_model', type=int, default=512, help='Dimension of model')
     parser.add_argument('--n_heads', type=int, default=8, help='Number of heads')

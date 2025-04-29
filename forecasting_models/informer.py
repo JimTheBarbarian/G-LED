@@ -23,6 +23,7 @@ class informer(nn.Module):
         self.enc_in = configs.enc_in
         self.dec_in = configs.dec_in
         self.c_out = configs.c_out
+        self.distil = configs.distil
 
         # Embedding
         self.enc_embedding = DataEmbedding(self.enc_in, configs.d_model, 
