@@ -236,7 +236,7 @@ def main():
     parser.add_argument('--num_workers', type=int, default=4, help='Number of dataloader workers')
 
     # --- Model Arguments ---
-    parser.add_argument('--model_name', type=str, required=True, help='Name of the forecasting model')
+    parser.add_argument('--model_name', type=str, help='Name of the forecasting model')
     parser.add_argument('--input_len', type=int, default=64, help='Input sequence length')
     parser.add_argument('--pred_len', type=int, default=321, help='Prediction sequence length')
     parser.add_argument('--label_len', type=int, default=32, help='Label length for decoder input (overlap with input)')
