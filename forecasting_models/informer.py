@@ -19,14 +19,10 @@ class informer(nn.Module):
         self.label_len = configs.label_len
 
         #if configs.channel_independence:
-        self.enc_in = 1
-        self.dec_in = 1
-        self.c_out = 1
-        self.distil = True
-        #else:
-        #    self.enc_in = configs.enc_in
-        #    self.dec_in = configs.dec_in
-        #    self.c_out = configs.c_out
+
+        self.enc_in = configs.enc_in
+        self.dec_in = configs.dec_in
+        self.c_out = configs.c_out
 
         # Embedding
         self.enc_embedding = DataEmbedding(self.enc_in, configs.d_model, 
