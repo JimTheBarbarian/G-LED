@@ -81,7 +81,7 @@ def train_test_seq(args, model, train_loader, sampler_train, valid_loader, test_
             elif args.model_name == 'iTransformer':
                 model_instance = iTransformer(args).to(args.gpu)
             else:
-                model_instance = FWin(seq_len=args.input_len, label_len = args.label_len, out_len=args.pred_len, enc_in=args.enc_in,dec_in=args.dec_in,c_out=args.c_out,window_size=args.window_size).to(args.gpu)
+                model_instance = FWin(seq_len=args.input_len, label_len = 31, out_len=args.pred_len, enc_in=args.enc_in,dec_in=args.dec_in,c_out=args.c_out,window_size=args.window_size).to(args.gpu)
             model_instance.load_state_dict(torch.load(best_model_path, map_location=args.gpu))
             model_instance.eval()
             print(f"Loaded best model from {best_model_path} for testing.")
@@ -354,9 +354,11 @@ def main():
         if args.model_name == 'informer':
             model = informer(args).to(device) # Pass model_args for informer
         elif args.model_name == 'iTransformer':
+            args.label_len = 32
             model = iTransformer(args).to(device)
         else:
-            model = FWin(seq_len=args.input_len, label_len = 31, out_len=args.pred_len, enc_in=args.enc_in,dec_in=args.dec_in,c_out=args.c_out,window_size=args.window_size).to(device) # Placeholder signature
+            args.label_len = 31 # Set label_len for FWin
+            model = FWin(seq_len=args.input_len, label_len = args.label_len, out_len=args.pred_len, enc_in=args.enc_in,dec_in=args.dec_in,c_out=args.c_out,window_size=args.window_size).to(device) # Placeholder signature
 
         if args.distributed:
             model = DDP(model, device_ids=[args.local_rank], output_device=args.local_rank, find_unused_parameters=False) # Adjust find_unused_parameters if needed
