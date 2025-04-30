@@ -251,14 +251,14 @@ def main():
     parser.add_argument('--dec_in', type=int, default=64, help='Decoder input size (spatial dimension)')
     parser.add_argument('--c_out', type=int, default=64, help='Output size (spatial dimension)')
     parser.add_argument('--factor', type=int, default=5, help='')
-    parser.add_argument('--window_size', type=int, default=8, help='')
+    parser.add_argument('--window_size', type=int, default=16, help='')
     parser.add_argument('--distil', action='store_false', help='')
     # Add common transformer args (might be ignored by simpler models)
-    parser.add_argument('--d_model', type=int, default=512, help='Dimension of model')
+    parser.add_argument('--d_model', type=int, default=128, help='Dimension of model')
     parser.add_argument('--n_heads', type=int, default=8, help='Number of heads')
-    parser.add_argument('--e_layers', type=int, default=2, help='Number of encoder layers')
-    parser.add_argument('--d_layers', type=int, default=1, help='Number of decoder layers')
-    parser.add_argument('--d_ff', type=int, default=2048, help='Dimension of feedforward network')
+    parser.add_argument('--e_layers', type=int, default=3, help='Number of encoder layers')
+    parser.add_argument('--d_layers', type=int, default=2, help='Number of decoder layers')
+    parser.add_argument('--d_ff', type=int, default=256, help='Dimension of feedforward network')
     parser.add_argument('--dropout', type=float, default=0.1, help='Dropout rate')
     parser.add_argument('--activation', type=str, default='relu', help='Activation function')
     parser.add_argument('--output_attention', action='store_true', help='Output attention weights')
@@ -345,13 +345,14 @@ def main():
 
     # --- Instantiate Model ---
     base_output_dir = args.output_dir # Base output directory for saving models
-    for model_name in [  'iTransformer']:
+    for model_name in [ 'FWin', 'informer']:
         args.model_name = model_name
         args.output_dir = os.path.join(base_output_dir, args.model_name) # Set model-specific output dir
         if is_main_process():
             os.makedirs(args.output_dir, exist_ok=True) # Create model-specific output dir if it doesn't exist
         if is_main_process(): print(f"Creating model: {args.model_name}")
         if args.model_name == 'informer':
+            args.label_len = 32
             model = informer(args).to(device) # Pass model_args for informer
         elif args.model_name == 'iTransformer':
             args.label_len = 32
