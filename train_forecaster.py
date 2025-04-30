@@ -249,6 +249,7 @@ def main():
     parser.add_argument('--dec_in', type=int, default=64, help='Decoder input size (spatial dimension)')
     parser.add_argument('--c_out', type=int, default=64, help='Output size (spatial dimension)')
     parser.add_argument('--factor', type=int, default=5, help='')
+    parser.add_argument('--window_size', type=int, default=16, help='')
     parser.add_argument('--distil', action='store_false', help='')
     # Add common transformer args (might be ignored by simpler models)
     parser.add_argument('--d_model', type=int, default=512, help='Dimension of model')
@@ -342,7 +343,7 @@ def main():
 
     # --- Instantiate Model ---
     base_output_dir = args.output_dir # Base output directory for saving models
-    for model_name in [ 'informer', 'iTransformer']:
+    for model_name in [ 'FWin']:#'informer', 'iTransformer']:
         args.model_name = model_name
         args.output_dir = os.path.join(base_output_dir, args.model_name) # Set model-specific output dir
         if is_main_process():
@@ -352,6 +353,8 @@ def main():
             model = informer(args).to(device) # Pass model_args for informer
         elif args.model_name == 'iTransformer':
             model = iTransformer.Model(args).to(device)
+        else:
+            model = FWin(seq_len=args.input_len, label_len = args.label_len, out_len=args.pred_len, enc_in=args.enc_in,dec_in=args.dec_in,c_out=args.c_out,window_size=args.window_size).to(device) # Placeholder signature
 
         if args.distributed:
             model = DDP(model, device_ids=[args.local_rank], output_device=args.local_rank, find_unused_parameters=True) # Adjust find_unused_parameters if needed
