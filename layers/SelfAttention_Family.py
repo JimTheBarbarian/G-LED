@@ -389,7 +389,9 @@ class AttentionLayerCrossWin(nn.Module):
         self.output_attn = output_attention    
 
     def forward(self, queries, keys, values, attn_mask):
-
+        print('queries.shape', queries.shape)
+        print('keys.shape', keys.shape)
+        print('values.shape', values.shape)
         B, L, _ = queries.shape
         _, S, _ = keys.shape
         H = self.n_heads
