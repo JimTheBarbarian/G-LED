@@ -79,7 +79,9 @@ def train_test_seq(args, model, train_loader, sampler_train, valid_loader, test_
             if args.model_name == 'informer':
                 model_instance = informer(args).to(args.gpu) # Pass model_args for informer
             elif args.model_name == 'iTransformer':
-                model_instance = iTransformer.Model(args).to(args.gpu)
+                model_instance = iTransformer(args).to(args.gpu)
+            else:
+                model_instance = FWin(seq_len=args.input_len, label_len = args.label_len, out_len=args.pred_len, enc_in=args.enc_in,dec_in=args.dec_in,c_out=args.c_out,window_size=args.window_size).to(args.gpu)
             model_instance.load_state_dict(torch.load(best_model_path, map_location=args.gpu))
             model_instance.eval()
             print(f"Loaded best model from {best_model_path} for testing.")
@@ -249,7 +251,7 @@ def main():
     parser.add_argument('--dec_in', type=int, default=64, help='Decoder input size (spatial dimension)')
     parser.add_argument('--c_out', type=int, default=64, help='Output size (spatial dimension)')
     parser.add_argument('--factor', type=int, default=5, help='')
-    parser.add_argument('--window_size', type=int, default=16, help='')
+    parser.add_argument('--window_size', type=int, default=8, help='')
     parser.add_argument('--distil', action='store_false', help='')
     # Add common transformer args (might be ignored by simpler models)
     parser.add_argument('--d_model', type=int, default=512, help='Dimension of model')
@@ -354,7 +356,7 @@ def main():
         elif args.model_name == 'iTransformer':
             model = iTransformer(args).to(device)
         else:
-            model = FWin(seq_len=args.input_len, label_len = args.label_len, out_len=args.pred_len, enc_in=args.enc_in,dec_in=args.dec_in,c_out=args.c_out,window_size=args.window_size).to(device) # Placeholder signature
+            model = FWin(seq_len=args.input_len, label_len = 31, out_len=args.pred_len, enc_in=args.enc_in,dec_in=args.dec_in,c_out=args.c_out,window_size=args.window_size).to(device) # Placeholder signature
 
         if args.distributed:
             model = DDP(model, device_ids=[args.local_rank], output_device=args.local_rank, find_unused_parameters=False) # Adjust find_unused_parameters if needed
