@@ -186,7 +186,7 @@ def test_epoch(args, model, test_loader,device):
     
     valid_indices = sum_target_norm_sq_per_step > 1e-9
     mean_relative_errors_per_step[valid_indices] = sum_mse_per_step[valid_indices] / sum_target_norm_sq_per_step[valid_indices]
-    start = torch.zeros(args.input_len, device=device).cpu().numpy()
+    start = torch.zeros(args.input_len, device=device)
     mean_relative_errors_per_step = torch.cat((start, mean_relative_errors_per_step), dim=0) # Concatenate zeros for input length
     mean_relative_errors_per_step_np = mean_relative_errors_per_step.cpu().numpy()
     return mean_relative_errors_per_step_np
