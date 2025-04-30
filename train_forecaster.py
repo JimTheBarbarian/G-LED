@@ -343,7 +343,7 @@ def main():
 
     # --- Instantiate Model ---
     base_output_dir = args.output_dir # Base output directory for saving models
-    for model_name in [ 'FWin']:#'informer', 'iTransformer']:
+    for model_name in [ 'FWin', 'iTransformer']:
         args.model_name = model_name
         args.output_dir = os.path.join(base_output_dir, args.model_name) # Set model-specific output dir
         if is_main_process():
@@ -352,7 +352,7 @@ def main():
         if args.model_name == 'informer':
             model = informer(args).to(device) # Pass model_args for informer
         elif args.model_name == 'iTransformer':
-            model = iTransformer.Model(args).to(device)
+            model = iTransformer(args).to(device)
         else:
             model = FWin(seq_len=args.input_len, label_len = args.label_len, out_len=args.pred_len, enc_in=args.enc_in,dec_in=args.dec_in,c_out=args.c_out,window_size=args.window_size).to(device) # Placeholder signature
 
