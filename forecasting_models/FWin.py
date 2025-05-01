@@ -5,7 +5,7 @@ import torch.nn.functional as F
 from util.masking import TriangularCausalMask, ProbMask
 from layers.embed import DataEmbedding
 #from layers.SelfAttention_Family import FullAttention, ProbAttention, AttentionLayerWin, AttentionLayerCrossWin
-from layers.FWin_attentions.py import FullAttention as FullFwin, ProbAttention as ProbFWin, AttentionLayerWin as AttnLayerFWin, AttentionLayerCrossWin as AttnLayerCrossFWin
+from layers.FWin_attentions import FullAttention as FullFwin, ProbAttention as ProbFWin, AttentionLayerWin as AttnLayerFWin, AttentionLayerCrossWin as AttnLayerCrossFWin
 from layers.Transformer_EncDec import ConvLayer, EncoderLayer, Encoder, FourierMix, DecoderLayerWithFourier, Decoder
 
 

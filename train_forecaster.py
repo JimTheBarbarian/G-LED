@@ -29,7 +29,7 @@ from forecasting_models.FWin import FWin
 from forecasting_models.informer import informer
 from forecasting_models.iTransformer import iTransformer
 from layers.embed import DataEmbedding, DataEmbedding_inverted
-from layers.FWin_attentions.py import FullAttention as FullFwin, ProbAttention as ProbFWin, AttentionLayerWin as AttnLayerFWin, AttentionLayerCrossWin as AttnLayerCrossFWin
+from layers.FWin_attentions import FullAttention as FullFwin, ProbAttention as ProbFWin, AttentionLayerWin as AttnLayerFWin, AttentionLayerCrossWin as AttnLayerCrossFWin
 
 from layers.SelfAttention_Family import ProbAttention, FullAttention, AttentionLayerWin, AttentionLayerCrossWin
 from layers.Transformer_EncDec import ConvLayer, EncoderLayer, Encoder, FourierMix, DecoderLayerWithFourier, Decoder
