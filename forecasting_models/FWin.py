@@ -80,17 +80,12 @@ class FWin(nn.Module):
     def forward(self, x_enc, x_dec,
                 enc_self_mask=None, dec_self_mask=None, dec_enc_mask=None):
         enc_out = self.enc_embedding(x_enc)
-        print(enc_out.shape)
 
         enc_out, attns = self.encoder(enc_out, attn_mask=enc_self_mask)
-        print(enc_out.shape)
         dec_out = self.dec_embedding(x_dec)
-        print(dec_out.shape)
         dec_out = self.decoder(
             dec_out, enc_out, x_mask=dec_self_mask, cross_mask=dec_enc_mask)
-        print(dec_out.shape)
         dec_out = self.projection(dec_out)
-        print(dec_out.shape)
         if self.output_attention:
             return dec_out[:, -self.pred_len:, :], attns
         else:
