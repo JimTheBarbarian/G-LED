@@ -82,7 +82,7 @@ def train_test_seq(args, model, train_loader, sampler_train, valid_loader, test_
             elif args.model_name == 'iTransformer':
                 model_instance = iTransformer(args).to(args.gpu)
             else:
-                model_instance = FWin(seq_len=args.input_len, label_len = 31, out_len=args.pred_len, enc_in=args.enc_in,dec_in=args.dec_in,c_out=args.c_out,window_size=args.window_size).to(args.gpu)
+                model_instance = FWin(seq_len=args.input_len, label_len = args.label_len, out_len=args.pred_len, enc_in=args.enc_in,dec_in=args.dec_in,c_out=args.c_out,window_size=args.window_size,attn = 'prob',num_windows=args.num_windows,d_model = args.d_model, d_ff = args.d_ff).to(args.gpu) 
             model_instance.load_state_dict(torch.load(best_model_path, map_location=f'cuda:{args.gpu}'))
             model_instance.eval()
             print(f"Loaded best model from {best_model_path} for testing.")
@@ -270,7 +270,7 @@ def main():
 
 
     # --- Training Arguments ---
-    parser.add_argument('--num_epochs', type=int, default=100, help='Number of training epochs')
+    parser.add_argument('--num_epochs', type=int, default=21, help='Number of training epochs')
     parser.add_argument('--learning_rate', type=float, default=1e-4, help='Initial learning rate')
     parser.add_argument('--scheduler_step_size', type=int, default=10, help='StepLR step size')
     parser.add_argument('--scheduler_gamma', type=float, default=0.9, help='StepLR gamma')
