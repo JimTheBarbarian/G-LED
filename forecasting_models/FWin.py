@@ -4,7 +4,8 @@ import torch.nn.functional as F
 
 from util.masking import TriangularCausalMask, ProbMask
 from layers.embed import DataEmbedding
-from layers.SelfAttention_Family import FullAttention, ProbAttention, AttentionLayerWin, AttentionLayerCrossWin
+#from layers.SelfAttention_Family import FullAttention, ProbAttention, AttentionLayerWin, AttentionLayerCrossWin
+from layers.FWin_attentions.py import FullAttention as FullFwin, ProbAttention as ProbFWin, AttentionLayerWin as AttnLayerFWin, AttentionLayerCrossWin as AttnLayerCrossFWin
 from layers.Transformer_EncDec import ConvLayer, EncoderLayer, Encoder, FourierMix, DecoderLayerWithFourier, Decoder
 
 
@@ -27,7 +28,7 @@ class FWin(nn.Module):
         self.dec_embedding = DataEmbedding(
             dec_in, d_model, embed, freq, dropout)
         # Attention
-        Attn = ProbAttention if attn == 'prob' else FullAttention
+        Attn = ProbFWin if attn == 'prob' else FullFwin
         
 
         encoder_layers = nn.ModuleList()
@@ -35,7 +36,7 @@ class FWin(nn.Module):
         for l in range(e_layers):
             if l%2 == 0:
                 encoder_layers.append(EncoderLayer(
-                        AttentionLayerWin(Attn(False, factor, attention_dropout=dropout, output_attention=output_attention), 
+                        AttnLayerFWin(Attn(False, factor, attention_dropout=dropout, output_attention=output_attention), 
                                     d_model, n_heads, mix=False,output_attention=output_attention,window_size=window_size),
                         d_model,
                         d_ff,
@@ -59,9 +60,9 @@ class FWin(nn.Module):
         self.decoder = Decoder(
             [
                 DecoderLayerWithFourier(
-                    AttentionLayerWin(Attn(True, factor, attention_dropout=dropout, output_attention=False),
+                    AttnLayerFWin(Attn(True, factor, attention_dropout=dropout, output_attention=False),
                                    d_model, n_heads, mix=mix,window_size=dwindow_size),
-                    AttentionLayerCrossWin(FullAttention(False, factor, attention_dropout=dropout, output_attention=False),
+                    AttnLayerCrossFWin(FullFwin(False, factor, attention_dropout=dropout, output_attention=False),
                                    d_model, n_heads, mix=False, num_windows=num_windows),
                     d_model,
                     d_ff,
