@@ -404,7 +404,7 @@ def main():
 
     # --- Instantiate Model ---
     base_output_dir = args.output_dir # Base output directory for saving models
-    for model_name in [ 'FWin', 'informer']:
+    for model_name in [ 'FWin', 'informer', 'iTransformer']:
         args.model_name = model_name
         args.output_dir = os.path.join(base_output_dir, args.model_name) # Set model-specific output dir
         if is_main_process():
