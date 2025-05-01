@@ -253,6 +253,8 @@ def main():
     parser.add_argument('--c_out', type=int, default=64, help='Output size (spatial dimension)')
     parser.add_argument('--factor', type=int, default=5, help='')
     parser.add_argument('--window_size', type=int, default=16, help='')
+    parser.add_argument('--num_windows', type=int, default=2, help='')
+    parser.add_argument('--attn', type=str, default='prob', help='Attention type (prob/full)')
     parser.add_argument('--distil', action='store_false', help='')
     # Add common transformer args (might be ignored by simpler models)
     parser.add_argument('--d_model', type=int, default=128, help='Dimension of model')
@@ -360,7 +362,7 @@ def main():
             model = iTransformer(args).to(device)
         else:
             args.label_len = 31 # Set label_len for FWin
-            model = FWin(seq_len=args.input_len, label_len = args.label_len, out_len=args.pred_len, enc_in=args.enc_in,dec_in=args.dec_in,c_out=args.c_out,window_size=args.window_size,attn = 'prob').to(device) # Placeholder signature
+            model = FWin(seq_len=args.input_len, label_len = args.label_len, out_len=args.pred_len, enc_in=args.enc_in,dec_in=args.dec_in,c_out=args.c_out,window_size=args.window_size,attn = 'prob',num_windows=args.num_windows,d_model = args.d_model, d_ff = args.d_ff).to(device) # Placeholder signature
 
         if args.distributed:
             model = DDP(model, device_ids=[args.local_rank], output_device=args.local_rank, find_unused_parameters=False) # Adjust find_unused_parameters if needed
