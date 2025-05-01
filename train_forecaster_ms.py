@@ -326,7 +326,7 @@ def main():
 
 
     # --- Training Arguments ---
-    parser.add_argument('--num_epochs', type=int, default=21, help='Number of training epochs')
+    parser.add_argument('--num_epochs', type=int, default=100, help='Number of training epochs')
     parser.add_argument('--learning_rate', type=float, default=1e-4, help='Initial learning rate')
     parser.add_argument('--scheduler_step_size', type=int, default=10, help='StepLR step size')
     parser.add_argument('--scheduler_gamma', type=float, default=0.9, help='StepLR gamma')
@@ -418,7 +418,7 @@ def main():
             args.label_len = 32
             model = iTransformer(args).to(device)
         else:
-            args.label_len = 31 # Set label_len for FWin
+            args.label_len = 32 # Set label_len for FWin
             model = FWin(seq_len=args.input_len, label_len = args.label_len, out_len=args.pred_len, enc_in=args.enc_in,dec_in=args.dec_in,c_out=args.c_out,window_size=args.window_size,attn = 'prob',num_windows=args.num_windows,d_model = args.d_model, d_ff = args.d_ff).to(device) # Placeholder signature
 
         if args.distributed:
