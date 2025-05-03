@@ -103,25 +103,33 @@ def train_epoch(args,model, train_loader, optimizer,device):
     loader_wrapper = tqdm(train_loader) if is_main_process() else train_loader
 
     num_pred_segments = (args.sample_len - args.input_len) // args.pred_len 
+    total_pred_len = num_pred_segments * args.pred_len
+
 
     for batch_idx, (data) in enumerate(loader_wrapper):
         data = data.to(device).float()
         for i in range(num_pred_segments):
-            start_idx = i * args.pred_len
-            input_end_idx = start_idx + args.input_len
-            target_end_idx = input_end_idx + args.pred_len
-            if target_end_idx > args.sample_len:
-                break
-            input_data = data[:, start_idx:input_end_idx, :]
-            target = data[:, input_end_idx:target_end_idx, :]
+            ground_truth = data[:, args.input_len: args.input_len + total_pred_len, :]
 
-            label_start_idx = input_end_idx - args.label_len
-            label = torch.cat([input_data[:, label_start_idx:input_end_idx, :], torch.zeros_like(target)], dim=1) # Zeros as placeholder for target steps
+            current_input = data[:, :args.input_len, :]
+            all_predictions = []
+            for i in range(num_pred_segments):
+                label_start_idx = args.input_len - args.label_len
+                label = torch.cat([current_input[:, label_start_idx:args.input_len, :], torch.zeros((current_input.shape[0],args.pred_len, current_input.shape[2]),device = device)], dim=1)
+                optimizer.zero_grad()
+                next_segment = model(current_input, label)
+                all_predictions.append(next_segment)
 
-            optimizer.zero_grad()
+                if args.input_len == args.pred_len:
+                    current_input = next_segment
+                else:
+                    combined = torch.cat([current_input[:, args.pred_len:, :], next_segment], dim=1)
+                    current_input = combined 
+            
+            final_predictions = torch.cat(all_predictions, dim=1) # Concatenate all predictions
 
-            output = model(input_data, label)
-            loss = F.mse_loss(output, target) 
+            comparison_len = min(final_predictions.shape[1], ground_truth.shape[1])
+            loss = F.mse_loss(final_predictions[:, :comparison_len, :], ground_truth[:, :comparison_len, :])
 
             loss.backward() 
             optimizer.step()
