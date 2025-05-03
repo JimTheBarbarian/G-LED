@@ -419,6 +419,7 @@ def main():
             model = iTransformer(args).to(device)
         else:
             args.label_len = 32 # Set label_len for FWin
+            args.num_epochs = 10
             model = FWin(seq_len=args.input_len, label_len = args.label_len, out_len=args.pred_len, enc_in=args.enc_in,dec_in=args.dec_in,c_out=args.c_out,window_size=args.window_size,attn = 'prob',num_windows=args.num_windows,d_model = args.d_model, d_ff = args.d_ff).to(device) # Placeholder signature
 
         if args.distributed:
@@ -457,7 +458,7 @@ def main():
         # Save error curve if generated
             if error_curve is not None:
                 plt.figure(figsize=(10, 6))
-                t_values = np.arange(0, args.pred_len + args.input_len)
+                t_values = np.arange(0, len(error_curve)) # Time step indices
                 plt.semilogy(t_values, error_curve) # Use absolute time steps for x-axis
                 plt.xlabel('t (Time Step Index)')
                 plt.ylabel('e(t) (Mean Relative Error)')
