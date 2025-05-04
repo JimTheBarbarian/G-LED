@@ -98,7 +98,6 @@ def train_test_seq(args, model, train_loader, sampler_train, valid_loader, test_
 def train_epoch(args,model, train_loader, optimizer,device):
     model.train()
     total_loss = 0.0
-    num_segments_processed = 0
     # Wrap train_loader with tqdm only on main process
     loader_wrapper = tqdm(train_loader) if is_main_process() else train_loader
 
@@ -108,24 +107,17 @@ def train_epoch(args,model, train_loader, optimizer,device):
 
     for batch_idx, (data) in enumerate(loader_wrapper):
         data = data.to(device).float()
+
+        #if args.downsample:
+        #    data_spectral = torch.fft.rfft(data)[:,:,8]
+        #    data_coarse2fine = torch.fft.irfft(data_spectral, axis=-1,n=17)
+
+        optimizer.zero_grad()
         for i in range(num_pred_segments):
             ground_truth = data[:, args.input_len: args.input_len + total_pred_len, :]
-
             current_input = data[:, :args.input_len, :]
             all_predictions = []
-            for i in range(num_pred_segments):
-                label_start_idx = args.input_len - args.label_len
-                label = torch.cat([current_input[:, label_start_idx:args.input_len, :], torch.zeros((current_input.shape[0],args.pred_len, current_input.shape[2]),device = device)], dim=1)
-                optimizer.zero_grad()
-                next_segment = model(current_input, label)
-                all_predictions.append(next_segment)
 
-                if args.input_len == args.pred_len:
-                    current_input = next_segment
-                else:
-                    combined = torch.cat([current_input[:, args.pred_len:, :], next_segment], dim=1)
-                    current_input = combined 
-            
             final_predictions = torch.cat(all_predictions, dim=1) # Concatenate all predictions
 
             comparison_len = min(final_predictions.shape[1], ground_truth.shape[1])
