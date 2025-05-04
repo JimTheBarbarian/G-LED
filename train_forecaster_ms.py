@@ -95,7 +95,7 @@ def train_test_seq(args, model, train_loader, sampler_train, valid_loader, test_
     return error_curve # Return the DDP model and error curve (only valid on main process)
 
 
-def train_epoch(args,model, train_loader, optimizer,device):
+def train_epoch(args,model, train_loader, optimizer,device,down_sampler):
     model.train()
     total_loss = 0.0
     # Wrap train_loader with tqdm only on main process
@@ -104,41 +104,63 @@ def train_epoch(args,model, train_loader, optimizer,device):
     num_pred_segments = (args.sample_len - args.input_len) // args.pred_len 
     total_pred_len = num_pred_segments * args.pred_len
 
+    for batch_idx, (batch) in enumerate(loader_wrapper):
+        batch = batch.to(device).float()
+        if args.downsample:
+            #data_spectral = torch.fft.rfft(data)[:,:,8]
+            #data_coarse2fine = torch.fft.irfft(data_spectral, axis=-1,n=17)
+            b_size = batch.shape[0]
+            num_time = batch.shape[1]
+		    #num_velocity = 2 # Not doing BFS equations
+            batch = batch.reshape([b_size,num_time, 1,64])
+            batch_coarse = down_sampler(batch).reshape([b_size, 
+													num_time, 
+	
+													args.coarse_dim])
+            for j in range(num_time - args.input_len - total_pred_len + 1):
+                model.train()
+                optimizer.zero_grad()
+                current_input = batch_coarse[:, j:j + args.input_len, :]
+                ground_truth = batch_coarse[:, j + args.input_len:j + args.input_len + total_pred_len, :]
+                output = model(current_input)
+                loss = F.mse_loss(output, ground_truth)
+                loss.backward()
+                optimizer.step()
 
-    for batch_idx, (data) in enumerate(loader_wrapper):
-        data = data.to(device).float()
 
-        #if args.downsample:
-        #    data_spectral = torch.fft.rfft(data)[:,:,8]
-        #    data_coarse2fine = torch.fft.irfft(data_spectral, axis=-1,n=17)
-
-        optimizer.zero_grad()
-        ground_truth = data[:, args.input_len: args.input_len + total_pred_len, :]
-        current_input = data[:, :args.input_len, :]
-        all_predictions = []
+        '''
         for i in range(num_pred_segments):
-            label_start_idx = args.input_len - args.label_len
-            label = torch.cat([current_input[:, label_start_idx:args.input_len, :], torch.zeros((current_input.shape[0],args.pred_len, current_input.shape[2]),device = device)], dim=1)
-            next_segment = model(current_input, label) # Predict the next segment
-            all_predictions.append(next_segment)
+            
+            all_predictions = []
+                label_start_idx = args.input_len - args.label_len
+                label = torch.cat([current_input[:, label_start_idx:args.input_len, :], torch.zeros((current_input.shape[0],args.pred_len, current_input.shape[2]),device = device)], dim=1)
+                optimizer.zero_grad()
+                next_segment = model(current_input, label)
+                all_predictions.append(next_segment)
 
-            if args.input_len == args.pred_len:
-                current_input = next_segment.detach()
-            else:
-                current_input = torch.cat([current_input[:, args.pred_len:, :], next_segment], dim=1) # Detach to avoid backprop through the entire sequence
-        final_predictions = torch.cat(all_predictions, dim=1) # Concatenate all predictions
+                if args.input_len == args.pred_len:
+                    current_input = next_segment
+                else:
+                    combined = torch.cat([current_input[:, args.pred_len:, :], next_segment], dim=1)
+                    current_input = combined 
+            
+            final_predictions = torch.cat(all_predictions, dim=1) # Concatenate all predictions
+            
 
-        comparison_len = min(final_predictions.shape[1], ground_truth.shape[1])
-        loss = F.mse_loss(final_predictions[:, :comparison_len, :], ground_truth[:, :comparison_len, :])
-
-        loss.backward() 
-        optimizer.step()
-
-        batch_loss = loss.item()
-        total_loss += batch_loss
+            comparison_len = min(final_predictions.shape[1], ground_truth.shape[1])
+            loss = F.mse_loss(final_predictions[:, :comparison_len, :], ground_truth[:, :comparison_len, :])
+            
         
-    
+            loss.backward() 
+            optimizer.step()
 
+            batch_loss = loss.item()
+            num_segments_processed += 1
+        
+        if num_pred_segments > 0:
+            total_loss += batch_loss / num_pred_segments
+    
+'''
 
     # Average loss over batches
     avg_loss = total_loss / len(train_loader)
@@ -332,7 +354,7 @@ def main():
 
 
     # --- Training Arguments ---
-    parser.add_argument('--num_epochs', type=int, default=100, help='Number of training epochs')
+    parser.add_argument('--num_epochs', type=int, default=10, help='Number of training epochs')
     parser.add_argument('--learning_rate', type=float, default=1e-4, help='Initial learning rate')
     parser.add_argument('--scheduler_step_size', type=int, default=10, help='StepLR step size')
     parser.add_argument('--scheduler_gamma', type=float, default=0.9, help='StepLR gamma')
