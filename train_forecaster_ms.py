@@ -118,7 +118,7 @@ def train_epoch(args,model, train_loader, optimizer,device,down_sampler):
 													num_time, 
 	
 													args.coarse_dim])
-            for j in range(num_time - args.input_len - args.pred_len + 1,step = 5):
+            for j in range(0,num_time - args.input_len - args.pred_len + 1,5):
                 model.train()
                 optimizer.zero_grad()
                 current_input = batch_coarse[:, j:j + args.input_len, :]
