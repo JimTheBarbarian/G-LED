@@ -459,17 +459,18 @@ def main():
 
     # --- Instantiate Model ---
     base_output_dir = args.output_dir # Base output directory for saving models
-    for model_name in [ 'FWin', 'informer', 'iTransformer']:
+    for model_name in ['informer', 'iTransformer']:
         args.model_name = model_name
         args.output_dir = os.path.join(base_output_dir, args.model_name) # Set model-specific output dir
         if is_main_process():
             os.makedirs(args.output_dir, exist_ok=True) # Create model-specific output dir if it doesn't exist
         if is_main_process(): print(f"Creating model: {args.model_name}")
         if args.model_name == 'informer':
-            args.num_epochs = 100
+            args.num_epochs = 10
             args.label_len = 32
             model = informer(args).to(device) # Pass model_args for informer
         elif args.model_name == 'iTransformer':
+            args.num_epochs = 10
             args.label_len = 32
             model = iTransformer(args).to(device)
         else:
