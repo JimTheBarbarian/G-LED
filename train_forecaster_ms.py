@@ -122,8 +122,10 @@ def train_epoch(args,model, train_loader, optimizer,device,down_sampler):
                 model.train()
                 optimizer.zero_grad()
                 current_input = batch_coarse[:, j:j + args.input_len, :]
+                label_start_idx = args.input_len - args.label_len
+                label = torch.cat([current_input[:, label_start_idx:args.input_len, :], torch.zeros((current_input.shape[0],args.pred_len, current_input.shape[2]),device = device)], dim=1)
                 ground_truth = batch_coarse[:, j + args.input_len:j + args.input_len + total_pred_len, :]
-                output = model(current_input)
+                output = model(current_input,label)
                 loss = F.mse_loss(output, ground_truth)
                 loss.backward()
                 optimizer.step()
