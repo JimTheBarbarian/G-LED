@@ -113,24 +113,30 @@ def train_epoch(args,model, train_loader, optimizer,device):
         #    data_coarse2fine = torch.fft.irfft(data_spectral, axis=-1,n=17)
 
         optimizer.zero_grad()
+        ground_truth = data[:, args.input_len: args.input_len + total_pred_len, :]
+        current_input = data[:, :args.input_len, :]
+        all_predictions = []
         for i in range(num_pred_segments):
-            ground_truth = data[:, args.input_len: args.input_len + total_pred_len, :]
-            current_input = data[:, :args.input_len, :]
-            all_predictions = []
+            label_start_idx = args.input_len - args.label_len
+            label = torch.cat([current_input[:, label_start_idx:args.input_len, :], torch.zeros((current_input.shape[0],args.pred_len, current_input.shape[2]),device = device)], dim=1)
+            next_segment = model(current_input, label) # Predict the next segment
+            all_predictions.append(next_segment)
 
-            final_predictions = torch.cat(all_predictions, dim=1) # Concatenate all predictions
+            if args.input_len == args.pred_len:
+                current_input = next_segment.detach()
+            else:
+                current_input = torch.cat([current_input[:, args.pred_len:, :], next_segment], dim=1) # Detach to avoid backprop through the entire sequence
+        final_predictions = torch.cat(all_predictions, dim=1) # Concatenate all predictions
 
-            comparison_len = min(final_predictions.shape[1], ground_truth.shape[1])
-            loss = F.mse_loss(final_predictions[:, :comparison_len, :], ground_truth[:, :comparison_len, :])
+        comparison_len = min(final_predictions.shape[1], ground_truth.shape[1])
+        loss = F.mse_loss(final_predictions[:, :comparison_len, :], ground_truth[:, :comparison_len, :])
 
-            loss.backward() 
-            optimizer.step()
+        loss.backward() 
+        optimizer.step()
 
-            batch_loss = loss.item()
-            num_segments_processed += 1
+        batch_loss = loss.item()
+        total_loss += batch_loss
         
-        if num_pred_segments > 0:
-            total_loss += batch_loss / num_pred_segments
     
 
 
