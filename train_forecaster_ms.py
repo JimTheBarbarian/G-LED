@@ -37,6 +37,7 @@ from layers.Transformer_EncDec import ConvLayer, EncoderLayer, Encoder, FourierM
 
 def train_test_seq(args, model, train_loader, sampler_train, valid_loader, test_loader,optimizer, scheduler, num_epochs):
     best_val_mre = float('inf')
+    down_sampler = torch.nn.Upsample(size=(1,16),mode='bilinear')
     for epoch in range(num_epochs):
         if is_main_process():
             print(f"--- Epoch {epoch+1}/{num_epochs} ---")
@@ -45,13 +46,13 @@ def train_test_seq(args, model, train_loader, sampler_train, valid_loader, test_
             sampler_train.set_epoch(epoch)
 
         # Training Step
-        train_loss = train_epoch(args, model, train_loader, optimizer, device=args.gpu) # Use args.gpu from setup
+        train_loss = train_epoch(args, model, train_loader, optimizer, down_sampler=down_sampler, device=args.gpu) # Use args.gpu from setup
         if is_main_process():
             print(f"Epoch {epoch+1} Train Loss: {train_loss:.6f}")
 
         # Validation Step (only on main process for efficiency)
         if is_main_process():
-            max_mre, min_mre, mean_mre, sigma3 = valid_epoch(args, model.module, valid_loader, device=args.gpu) # Use model.module for validation
+            max_mre, min_mre, mean_mre, sigma3 = valid_epoch(args, model.module, valid_loader, device=args.gpu, down_sampler=down_sampler) # Use model.module for validation
             print(f'Validation - Max MRE: {max_mre:.4f}, Mean MRE: {mean_mre:.4f}, Min MRE: {min_mre:.4f}, 3 Sigma: {sigma3:.4f}')
             print(f'Time for Epoch {epoch+1}: {time.time()-tic:.2f}s')
 
@@ -86,7 +87,7 @@ def train_test_seq(args, model, train_loader, sampler_train, valid_loader, test_
             model_instance.load_state_dict(torch.load(best_model_path, map_location=f'cuda:{args.gpu}'))
             model_instance.eval()
             print(f"Loaded best model from {best_model_path} for testing.")
-            error_curve = test_epoch(args, model_instance, test_loader, device=args.gpu) # Test the best single model
+            error_curve = test_epoch(args, model_instance, test_loader, device=args.gpu,down_sampler = down_sampler) # Test the best single model
             print(f"Test Error Curve (Mean Relative Error per Step): {error_curve}")
         else:
             print("No best model found to test.")
@@ -173,7 +174,7 @@ def train_epoch(args,model, train_loader, optimizer,device,down_sampler):
     return avg_loss
 
 
-def valid_epoch(args, model, valid_loader,device):
+def valid_epoch(args, model, valid_loader,device,down_sampler):
     model.eval()
     batch_relative_errors= []
     loader_wrapper = tqdm(valid_loader) if is_main_process() else valid_loader
@@ -184,6 +185,17 @@ def valid_epoch(args, model, valid_loader,device):
     with torch.no_grad():
         for batch_idx, (data) in enumerate(loader_wrapper):
             data = data.to(device).float()
+            if args.downsample:
+                #data_spectral = torch.fft.rfft(data)[:,:,8]
+                #data_coarse2fine = torch.fft.irfft(data_spectral, axis=-1,n=17)
+                b_size = data.shape[0]
+                num_time = data.shape[1]
+                data = data.reshape([b_size,num_time, 1,64])
+                data_coarse = down_sampler(data).reshape([b_size, 
+                                                    num_time, 
+    
+                                                    args.coarse_dim])
+                data = data_coarse
             ground_truth = data[:, args.input_len: args.input_len + total_pred_len, :]
 
             current_input = data[:, :args.input_len, :]
@@ -221,7 +233,7 @@ def valid_epoch(args, model, valid_loader,device):
 
     return max_mre, min_mre, mean_mre, sigma3
 
-def test_epoch(args, model, test_loader,device):
+def test_epoch(args, model, test_loader,device,down_sampler):
     model.eval()
 
     num_pred_segments = (args.sample_len - args.input_len) // args.pred_len
@@ -234,6 +246,17 @@ def test_epoch(args, model, test_loader,device):
     with torch.no_grad():
         for batch_idx, (data) in enumerate(loader_wrapper):
             data = data.to(device).float()
+            if args.downsample:
+                #data_spectral = torch.fft.rfft(data)[:,:,8]
+                #data_coarse2fine = torch.fft.irfft(data_spectral, axis=-1,n=17)
+                b_size = data.shape[0]
+                num_time = data.shape[1]
+                data = data.reshape([b_size,num_time, 1,64])
+                data_coarse = down_sampler(data).reshape([b_size, 
+                                                    num_time, 
+    
+                                                    args.coarse_dim])
+                data = data_coarse
             ground_truth = data[:, args.input_len: args.input_len + total_pred_len, :]
             current_input = data[:, :args.input_len, :]
             all_predictions = []
