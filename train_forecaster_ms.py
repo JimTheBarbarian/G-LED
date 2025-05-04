@@ -127,6 +127,7 @@ def train_epoch(args,model, train_loader, optimizer,device,down_sampler):
                 ground_truth = batch_coarse[:, j + args.input_len:j + args.input_len + args.pred_len, :]
                 output = model(current_input,label)
                 loss = F.mse_loss(output, ground_truth)
+                total_loss += loss.item()
                 loss.backward()
                 optimizer.step()
 
