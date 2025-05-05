@@ -393,7 +393,7 @@ def main():
 
 
     # --- Training Arguments ---
-    parser.add_argument('--num_epochs', type=int, default=8, help='Number of training epochs')
+    parser.add_argument('--num_epochs', type=int, default=10, help='Number of training epochs')
     parser.add_argument('--learning_rate', type=float, default=1e-4, help='Initial learning rate')
     parser.add_argument('--scheduler_step_size', type=int, default=10, help='StepLR step size')
     parser.add_argument('--scheduler_gamma', type=float, default=0.9, help='StepLR gamma')
