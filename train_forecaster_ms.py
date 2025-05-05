@@ -86,6 +86,9 @@ def train_test_seq(args, model, train_loader, sampler_train, valid_loader, test_
                 model_instance = iTransformer(args).to(args.gpu)
             elif args.model_name == 'Spectcaster':
                 model_instance = Spectcaster(args).to(args.gpu)
+            elif args.model_name == 'DLinear':
+                model_instance = DLinear(input_len = args.input_len, output_len = args.pred_len, individual = False, input_features = args.enc_in, output_features = args.c_out)
+                model_instance = model_instance.to(args.gpu)
             else:
                 model_instance = FWin(seq_len=args.input_len, label_len = args.label_len, out_len=args.pred_len, enc_in=args.enc_in,dec_in=args.dec_in,c_out=args.c_out,window_size=args.window_size,attn = 'prob',num_windows=args.num_windows,d_model = args.d_model, d_ff = args.d_ff).to(args.gpu) 
             model_instance.load_state_dict(torch.load(best_model_path, map_location=f'cuda:{args.gpu}'))
@@ -390,7 +393,7 @@ def main():
 
 
     # --- Training Arguments ---
-    parser.add_argument('--num_epochs', type=int, default=15, help='Number of training epochs')
+    parser.add_argument('--num_epochs', type=int, default=8, help='Number of training epochs')
     parser.add_argument('--learning_rate', type=float, default=1e-4, help='Initial learning rate')
     parser.add_argument('--scheduler_step_size', type=int, default=10, help='StepLR step size')
     parser.add_argument('--scheduler_gamma', type=float, default=0.9, help='StepLR gamma')
