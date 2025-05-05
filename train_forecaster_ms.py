@@ -483,7 +483,7 @@ def main():
             args.label_len = 32
             model = iTransformer(args).to(device)
         elif args.model_name == 'Spectcaster':
-            args.num_epochs = 10
+            args.num_epochs = 50
             args.label_len = 32
             model = Spectcaster(args).to(device)
             model = nn.SyncBatchNorm.convert_sync_batchnorm(model) # Convert to SyncBatchNorm for DDP
