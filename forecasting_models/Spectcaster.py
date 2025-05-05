@@ -240,12 +240,12 @@ class Spectcaster(nn.Module):
     def __init__(self,configs):
         super(Spectcaster,self).__init__()
         self.c_in = configs.enc_in
-        n_layers = configs.enc_layers
+        n_layers = configs.e_layers
         d_model = configs.d_model
         d_ff = configs.d_ff
         n_heads = configs.n_heads
         drop_rate = configs.dropout
-        revin = configs.revin 
+        revin = True 
         self.seq_len = configs.seq_len
         self.pred_len = configs.pred_len
 
