@@ -274,7 +274,7 @@ class Spectcaster(nn.Module):
                 self.blocks.append(Block(dim=d_model, mlp_ratio=4., drop_path = drop_rate, act_layer=nn.GELU, norm_layer=nn.BatchNorm1d))
             else:
                 self.blocks.append(Block_attention(dim=d_model, mlp_ratio=4., drop = drop_rate,drop_path=0., act_layer=nn.GELU, norm_layer=nn.BatchNorm1d))
-    def forward(self,x): # x is of shape (B,L,C)
+    def forward(self,x,label=None): # x is of shape (B,L,C)
         if self.revin:
             x = self.revin(x, 'norm')
         

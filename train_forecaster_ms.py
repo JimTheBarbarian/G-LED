@@ -125,10 +125,12 @@ def train_epoch(args,model, train_loader, optimizer,device,down_sampler):
                 model.train()
                 optimizer.zero_grad()
                 current_input = batch_coarse[:, j:j + args.input_len, :]
-                label_start_idx = args.input_len - args.label_len
-                label = torch.cat([current_input[:, label_start_idx:args.input_len, :], torch.zeros((current_input.shape[0],args.pred_len, current_input.shape[2]),device = device)], dim=1)
+                if args.decoder:
+                    label_start_idx = args.input_len - args.label_len
+                    label = torch.cat([current_input[:, label_start_idx:args.input_len, :], torch.zeros((current_input.shape[0],args.pred_len, current_input.shape[2]),device = device)], dim=1)
+                    output = model(current_input,label)
+                output = model(current_input)
                 ground_truth = batch_coarse[:, j + args.input_len:j + args.input_len + args.pred_len, :]
-                output = model(current_input,label)
                 loss = F.mse_loss(output, ground_truth)
                 total_loss += loss.item()
                 loss.backward()
@@ -379,6 +381,7 @@ def main():
     parser.add_argument('--d_ff', type=int, default=256, help='Dimension of feedforward network')
     parser.add_argument('--dropout', type=float, default=0.1, help='Dropout rate')
     parser.add_argument('--activation', type=str, default='relu', help='Activation function')
+    parser.add_argument('--decoder',action='store_true', help='Use decoder')
     parser.add_argument('--output_attention', action='store_true', help='Output attention weights')
     # DLinear specific
     parser.add_argument('--individual', action='store_true', help='Individual channels for DLinear')
