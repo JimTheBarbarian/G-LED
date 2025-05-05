@@ -191,9 +191,9 @@ class FlattenHead(nn.Module):
                 x_out.append(z)
             x = torch.stack(x_out, dim = -1)                        # x: [bs x c_in x prediction_horizon] 
         else:
-            z = self.flatten(x)
-            z =self.linear(x)
-            z= self.dropout(x)
+            x = self.flatten(x)
+            x =self.linear(x)
+            x= self.dropout(x)
         return x
 class PatchEmbed(nn.Module):
     def __init__(self, seq_length = 336, patch_size = 16, in_channels=1, embed_dim=512, norm_layer=None):
