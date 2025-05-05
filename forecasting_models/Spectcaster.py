@@ -261,11 +261,11 @@ class Spectcaster(nn.Module):
         self.head_nf = d_model *patch_num
 
         if revin:
-            self.revin = RevIN(num_features = self.c_in, eps= 1e-5, affine=configs.affine, subtract_last=configs.subtract_last)
-        self.pos_embed = positional_encoding(configs.pos_embed, configs.learn_pos_embed,q_len , configs.d_model)
+            self.revin = RevIN(num_features = self.c_in, eps= 1e-5)
+        self.pos_embed = positional_encoding('normal', True,q_len , configs.d_model)
         self.pos_drop = nn.Dropout(p = drop_rate)
         self.patch_embed = PatchEmbed(seq_length = self.seq_len, patch_size = self.patch_len, in_channels=self.c_in, embed_dim=d_model)
-        self.head = FlattenHead(self.individual,self.c_in,self.head_nf,self.pred_len,configs.head_dropout)
+        self.head = FlattenHead(self.individual,self.c_in,self.head_nf,self.pred_len)
 
         alpha = 2
         self.blocks = nn.ModuleList()
