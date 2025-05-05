@@ -540,7 +540,7 @@ def main():
 
                 # Adjust x-limits to show context around input/prediction boundary
                 plot_xlim_start = 0
-                plot_xlim_end = args.input_len + args.pred_len
+                plot_xlim_end = args.sample_len
                 plt.xlim(plot_xlim_start, plot_xlim_end)
 
                 # Add legend
