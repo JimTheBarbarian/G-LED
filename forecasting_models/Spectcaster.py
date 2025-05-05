@@ -152,7 +152,6 @@ class Block_attention(nn.Module):
         self.attn = Attention(dim, num_heads=num_heads,qkv_bias=True, qk_scale=False, attn_drop = drop, proj_drop=drop)
         self.drop_path = nn.Identity()#DropPath(drop_path) if drop_path > 0. else nn.Identity() 
         self.norm2 = nn.Sequential(Transpose(1,2),norm_layer(dim),Transpose(1,2))   
-        self.norm2 = norm_layer(dim)
         self.mlp = MLP(in_features=dim, hidden_features=int(dim*mlp_ratio), act_layer = act_layer, drop = drop)
 
     def forward(self, x):

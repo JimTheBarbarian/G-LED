@@ -486,12 +486,14 @@ def main():
             args.num_epochs = 10
             args.label_len = 32
             model = Spectcaster(args).to(device)
+            model = nn.SyncBatchNorm.convert_sync_batchnorm(model) # Convert to SyncBatchNorm for DDP
         else:
             args.label_len = 32 # Set label_len for FWin
             args.num_epochs = 10
             model = FWin(seq_len=args.input_len, label_len = args.label_len, out_len=args.pred_len, enc_in=args.enc_in,dec_in=args.dec_in,c_out=args.c_out,window_size=args.window_size,attn = 'prob',num_windows=args.num_windows,d_model = args.d_model, d_ff = args.d_ff).to(device) # Placeholder signature
 
         if args.distributed:
+
             model = DDP(model, device_ids=[args.local_rank], output_device=args.local_rank, find_unused_parameters=False) # Adjust find_unused_parameters if needed
         if is_main_process(): print(f"Model created on device: {device}")
 
