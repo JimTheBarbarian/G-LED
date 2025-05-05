@@ -28,6 +28,7 @@ from torch.utils.data import DataLoader, Dataset
 from forecasting_models.FWin import FWin
 from forecasting_models.informer import informer
 from forecasting_models.iTransformer import iTransformer
+from forecasting.models.Spectcaster import Spectcaster
 from layers.embed import DataEmbedding, DataEmbedding_inverted
 from layers.FWin_attentions import FullAttention as FullFwin, ProbAttention as ProbFWin, AttentionLayerWin as AttnLayerFWin, AttentionLayerCrossWin as AttnLayerCrossFWin
 
@@ -82,6 +83,8 @@ def train_test_seq(args, model, train_loader, sampler_train, valid_loader, test_
                 model_instance = informer(args).to(args.gpu) # Pass model_args for informer
             elif args.model_name == 'iTransformer':
                 model_instance = iTransformer(args).to(args.gpu)
+            elif args.model_name == 'Spectcaster':
+                model_instance = Spectcaster(args).to(args.gpu)
             else:
                 model_instance = FWin(seq_len=args.input_len, label_len = args.label_len, out_len=args.pred_len, enc_in=args.enc_in,dec_in=args.dec_in,c_out=args.c_out,window_size=args.window_size,attn = 'prob',num_windows=args.num_windows,d_model = args.d_model, d_ff = args.d_ff).to(args.gpu) 
             model_instance.load_state_dict(torch.load(best_model_path, map_location=f'cuda:{args.gpu}'))
@@ -366,8 +369,9 @@ def main():
     parser.add_argument('--num_windows', type=int, default=2, help='')
     parser.add_argument('--attn', type=str, default='prob', help='Attention type (prob/full)')
     parser.add_argument('--distil', action='store_false', help='')
+    parser.add_argument('--patch_len', type = int, default=16, help='')
     # Add common transformer args (might be ignored by simpler models)
-    parser.add_argument('--d_model', type=int, default=128, help='Dimension of model')
+    parser.add_argument('--d_model', type=int, default=64, help='Dimension of model')
     parser.add_argument('--n_heads', type=int, default=8, help='Number of heads')
     parser.add_argument('--e_layers', type=int, default=3, help='Number of encoder layers')
     parser.add_argument('--d_layers', type=int, default=2, help='Number of decoder layers')
@@ -460,7 +464,7 @@ def main():
 
     # --- Instantiate Model ---
     base_output_dir = args.output_dir # Base output directory for saving models
-    for model_name in ['informer', 'iTransformer']:
+    for model_name in ['Spectcaster']:
         args.model_name = model_name
         args.output_dir = os.path.join(base_output_dir, args.model_name) # Set model-specific output dir
         if is_main_process():
@@ -474,6 +478,10 @@ def main():
             args.num_epochs = 10
             args.label_len = 32
             model = iTransformer(args).to(device)
+        elif args.model_name == 'Spectcaster':
+            args.num_epochs = 10
+            args.label_len = 32
+            model = Spectcaster(args).to(device)
         else:
             args.label_len = 32 # Set label_len for FWin
             args.num_epochs = 10
