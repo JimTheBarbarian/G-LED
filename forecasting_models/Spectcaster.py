@@ -290,6 +290,7 @@ class Spectcaster(nn.Module):
         x = x.reshape(-1,n_vars,x.shape[-2],x.shape[-1]) # (B,C,num_patches,d_model)
         x = x.permute(0,1,3,2)  #(B,C,d_model,num_patches)
         x = self.head(x) #(B,C,pred_len)
+        x = x.permute(0,2,1) # (B,pred_len,C)
         if self.revin:
             x = self.revin(x, 'denorm')
         return x
