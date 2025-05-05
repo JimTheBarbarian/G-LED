@@ -246,7 +246,7 @@ class Spectcaster(nn.Module):
         n_heads = configs.n_heads
         drop_rate = configs.dropout
         revin = True 
-        self.seq_len = configs.seq_len
+        self.seq_len = configs.input_len
         self.pred_len = configs.pred_len
 
         # Patching
