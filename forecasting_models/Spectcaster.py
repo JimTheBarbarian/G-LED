@@ -267,7 +267,7 @@ class Spectcaster(nn.Module):
         self.patch_embed = PatchEmbed(seq_length = self.seq_len, patch_size = self.patch_len, in_channels=self.c_in, embed_dim=d_model)
         self.head = FlattenHead(self.individual,self.c_in,self.head_nf,self.pred_len)
 
-        alpha = 2
+        alpha = 1
         self.blocks = nn.ModuleList()
         for i in range(configs.depth):
             if i < alpha:

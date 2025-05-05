@@ -370,6 +370,7 @@ def main():
     parser.add_argument('--attn', type=str, default='prob', help='Attention type (prob/full)')
     parser.add_argument('--distil', action='store_false', help='')
     parser.add_argument('--patch_len', type = int, default=16, help='')
+    parser.add_argument('--depth', type = int, default=2, help='')
     # Add common transformer args (might be ignored by simpler models)
     parser.add_argument('--d_model', type=int, default=64, help='Dimension of model')
     parser.add_argument('--n_heads', type=int, default=8, help='Number of heads')
