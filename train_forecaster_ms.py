@@ -366,7 +366,7 @@ def main():
     # --- Model Arguments ---
     parser.add_argument('--model_name', type=str, help='Name of the forecasting model')
     parser.add_argument('--input_len', type=int, default=64, help='Input sequence length')
-    parser.add_argument('--pred_len', type=int, default=16, help='Prediction sequence length')
+    parser.add_argument('--pred_len', type=int, default=32, help='Prediction sequence length')
     parser.add_argument('--label_len', type=int, default=32, help='Label length for decoder input (overlap with input)')
     parser.add_argument('--enc_in', type=int, default=16, help='Encoder input size (spatial dimension)') # Assuming 64 based on other files
     parser.add_argument('--dec_in', type=int, default=16, help='Decoder input size (spatial dimension)')
