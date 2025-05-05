@@ -74,7 +74,7 @@ class DLinear(nn.Module):
         self.individual = individual
         self.channels = input_features
 
-        self.example_input_array = torch.Tensor(32, input_len, input_features)
+        #self.example_input_array = torch.Tensor(32, input_len, input_features)
 
         if self.individual:
             self.linear_seasonal = nn.ModuleList()
@@ -97,7 +97,7 @@ class DLinear(nn.Module):
             # self.Linear_Seasonal.weight = nn.Parameter((1/self.seq_len)*torch.ones([self.pred_len,self.seq_len]))
             # self.Linear_Trend.weight = nn.Parameter((1/self.seq_len)*torch.ones([self.pred_len,self.seq_len]))
 
-    def forward(self, x):
+    def forward(self, x,label=None):
         # x: [Batch, Input length, Channel]
         seasonal_init, trend_init = self.decompsition(x)
         seasonal_init, trend_init = seasonal_init.permute(

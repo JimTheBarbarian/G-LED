@@ -29,6 +29,7 @@ from forecasting_models.FWin import FWin
 from forecasting_models.informer import informer
 from forecasting_models.iTransformer import iTransformer
 from forecasting_models.Spectcaster import Spectcaster
+from forecasting_models.DLinear import DLinear
 from layers.embed import DataEmbedding, DataEmbedding_inverted
 from layers.FWin_attentions import FullAttention as FullFwin, ProbAttention as ProbFWin, AttentionLayerWin as AttnLayerFWin, AttentionLayerCrossWin as AttnLayerCrossFWin
 
@@ -121,7 +122,8 @@ def train_epoch(args,model, train_loader, optimizer,device,down_sampler):
 													num_time, 
 	
 													args.coarse_dim])
-            for j in range(0,num_time - args.input_len - args.pred_len + 1,5):
+            num_predicts = (num_time - args.input_len - args.pred_len + 1) // args.stride
+            for j in range(0,num_predicts):
                 model.train()
                 optimizer.zero_grad()
                 current_input = batch_coarse[:, j:j + args.input_len, :]
@@ -132,7 +134,7 @@ def train_epoch(args,model, train_loader, optimizer,device,down_sampler):
                 output = model(current_input)
                 ground_truth = batch_coarse[:, j + args.input_len:j + args.input_len + args.pred_len, :]
                 loss = F.mse_loss(output, ground_truth)
-                total_loss += loss.item()
+                total_loss += loss.item() / (num_pred_segments * num_predicts)
                 loss.backward()
                 optimizer.step()
 
@@ -171,7 +173,7 @@ def train_epoch(args,model, train_loader, optimizer,device,down_sampler):
     
 '''
 
-    # Average loss over batches
+    # Average loss over predictions
     avg_loss = total_loss / len(train_loader)
     # If you need the exact average loss across all GPUs:
     #if args.distributed:
@@ -395,6 +397,7 @@ def main():
     parser.add_argument('--output_dir', type=str, default='./forecasting_output_ms', help='Directory to save results')
     parser.add_argument('--downsample', action='store_false', help='Use downsampling')
     parser.add_argument('--coarse_dim', type=int, default=16, help='Coarse dimension for downsampling')
+    parser.add_argument('--stride', type=int, default=5, help='Stride for downsampling')
     # local_rank is handled by torchrun/launch
     parser.add_argument('--seed', type=int, default=20398, help='Random seed')
 
@@ -468,7 +471,7 @@ def main():
 
     # --- Instantiate Model ---
     base_output_dir = args.output_dir # Base output directory for saving models
-    for model_name in ['Spectcaster']:
+    for model_name in ['DLinear']:
         args.model_name = model_name
         args.output_dir = os.path.join(base_output_dir, args.model_name) # Set model-specific output dir
         if is_main_process():
@@ -486,6 +489,9 @@ def main():
             args.label_len = 32
             model = Spectcaster(args).to(device)
             model = nn.SyncBatchNorm.convert_sync_batchnorm(model) # Convert to SyncBatchNorm for DDP
+        elif args.model_name == 'DLinear':
+            model = DLinear(input_len = args.input_len, output_len = args.pred_len, individual = False, input_features = args.enc_in, output_features = args.c_out)
+            model = model.to(device)
         else:
             args.label_len = 32 # Set label_len for FWin
             args.num_epochs = 10
