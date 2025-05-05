@@ -255,7 +255,6 @@ class Spectcaster(nn.Module):
         q_len = patch_num
 
         self.output_attention = configs.output_attention
-        self.use_norm = configs.use_norm
 
         # head
         self.individual = configs.individual
