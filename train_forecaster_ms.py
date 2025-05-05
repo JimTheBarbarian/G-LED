@@ -388,7 +388,7 @@ def main():
 
 
     # --- Training Arguments ---
-    parser.add_argument('--num_epochs', type=int, default=20, help='Number of training epochs')
+    parser.add_argument('--num_epochs', type=int, default=15, help='Number of training epochs')
     parser.add_argument('--learning_rate', type=float, default=1e-4, help='Initial learning rate')
     parser.add_argument('--scheduler_step_size', type=int, default=10, help='StepLR step size')
     parser.add_argument('--scheduler_gamma', type=float, default=0.9, help='StepLR gamma')
@@ -483,7 +483,6 @@ def main():
             args.label_len = 32
             model = iTransformer(args).to(device)
         elif args.model_name == 'Spectcaster':
-            args.num_epochs = 50
             args.label_len = 32
             model = Spectcaster(args).to(device)
             model = nn.SyncBatchNorm.convert_sync_batchnorm(model) # Convert to SyncBatchNorm for DDP
