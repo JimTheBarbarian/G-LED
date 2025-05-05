@@ -28,7 +28,7 @@ from torch.utils.data import DataLoader, Dataset
 from forecasting_models.FWin import FWin
 from forecasting_models.informer import informer
 from forecasting_models.iTransformer import iTransformer
-from forecasting.models.Spectcaster import Spectcaster
+from forecasting_models.Spectcaster import Spectcaster
 from layers.embed import DataEmbedding, DataEmbedding_inverted
 from layers.FWin_attentions import FullAttention as FullFwin, ProbAttention as ProbFWin, AttentionLayerWin as AttnLayerFWin, AttentionLayerCrossWin as AttnLayerCrossFWin
 
