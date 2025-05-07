@@ -40,8 +40,8 @@ def train_epoch(diff_args,seq_args, trainer, data_loader,down_sampler,up_sampler
 
 		batch = batch[:,65:,:] # only predicting after the warmup
 		batch = batch.to(diff_args.device).float()
-		batch_spectral = torch.fft.rfft(batch,dim = -1)[:,:,8]
-		batch_coarse2fine = torch.fft.irfft(batch,axis=-1,n=64)
+		batch_spectral = torch.fft.rfft(batch,dim = -1)[:,:,:8]
+		batch_coarse2fine = torch.fft.irfft(batch_spectral,axis=-1,n=64)
 
 		bsize = batch.shape[0]
 		ntime = batch.shape[1] 
@@ -60,4 +60,5 @@ def train_epoch(diff_args,seq_args, trainer, data_loader,down_sampler,up_sampler
 		print("loss is ", loss)
 	
 		loss_epoch.append(loss)
+	print(len(loss_epoch))
 	return trainer, loss_epoch
