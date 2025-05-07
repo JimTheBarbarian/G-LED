@@ -87,7 +87,7 @@ def train_test_seq(args, model, train_loader, sampler_train, valid_loader, test_
             elif args.model_name == 'Spectcaster':
                 model_instance = Spectcaster(args).to(args.gpu)
             elif args.model_name == 'DLinear':
-                model_instance = DLinear(input_len = args.input_len, output_len = args.pred_len, individual = False, input_features = args.enc_in, output_features = args.c_out)
+                model_instance = DLinear(input_len = args.input_len, output_len = args.pred_len, individual = True, input_features = args.enc_in, output_features = args.c_out)
                 model_instance = model_instance.to(args.gpu)
             else:
                 model_instance = FWin(seq_len=args.input_len, label_len = args.label_len, out_len=args.pred_len, enc_in=args.enc_in,dec_in=args.dec_in,c_out=args.c_out,window_size=args.window_size,attn = 'prob',num_windows=args.num_windows,d_model = args.d_model, d_ff = args.d_ff).to(args.gpu) 
