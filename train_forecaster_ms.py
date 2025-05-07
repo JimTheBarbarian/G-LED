@@ -366,7 +366,7 @@ def main():
     # --- Model Arguments ---
     parser.add_argument('--model_name', type=str, help='Name of the forecasting model')
     parser.add_argument('--input_len', type=int, default=64, help='Input sequence length')
-    parser.add_argument('--pred_len', type=int, default=321, help='Prediction sequence length')
+    parser.add_argument('--pred_len', type=int, default=64, help='Prediction sequence length')
     parser.add_argument('--label_len', type=int, default=32, help='Label length for decoder input (overlap with input)')
     parser.add_argument('--enc_in', type=int, default=16, help='Encoder input size (spatial dimension)') # Assuming 64 based on other files
     parser.add_argument('--dec_in', type=int, default=16, help='Decoder input size (spatial dimension)')
@@ -400,7 +400,7 @@ def main():
     parser.add_argument('--output_dir', type=str, default='./forecasting_output_ms', help='Directory to save results')
     parser.add_argument('--downsample', action='store_false', help='Use downsampling')
     parser.add_argument('--coarse_dim', type=int, default=16, help='Coarse dimension for downsampling')
-    parser.add_argument('--stride', type=int, default=1, help='Stride for downsampling')
+    parser.add_argument('--stride', type=int, default=5, help='Stride for downsampling')
     # local_rank is handled by torchrun/launch
     parser.add_argument('--seed', type=int, default=20398, help='Random seed')
 
@@ -493,7 +493,7 @@ def main():
             model = Spectcaster(args).to(device)
             model = nn.SyncBatchNorm.convert_sync_batchnorm(model) # Convert to SyncBatchNorm for DDP
         elif args.model_name == 'DLinear':
-            model = DLinear(input_len = args.input_len, output_len = args.pred_len, individual = False, input_features = args.enc_in, output_features = args.c_out)
+            model = DLinear(input_len = args.input_len, output_len = args.pred_len, individual = True, input_features = args.enc_in, output_features = args.c_out)
             model = model.to(device)
         else:
             args.label_len = 32 # Set label_len for FWin
