@@ -61,7 +61,7 @@ def get_data_location(args):
 
 def save_loss(args, loss_list, Nt,):
 	plt.figure()
-	plt.plot(loss_list,'-o')
+	plt.plot(range(len(loss_list)),loss_list,'-o')
 	plt.yscale('log')
 	plt.xlabel('epoch')
 	plt.ylabel('loss')
