@@ -9,6 +9,7 @@ import torch.distributed as dist
 from torch.nn.parallel import DistributedDataParallel as DDP
 import numpy as np
 import json
+from tqdm import tqdm
 
 """
 Internal pacakage
@@ -49,7 +50,7 @@ class Args:
 		for training 
 		"""
 		self.parser.add_argument("--batch_size", default = 1)
-		self.parser.add_argument("--epoch_num", default = 2)
+		self.parser.add_argument("--epoch_num", default = 5)
 		self.parser.add_argument("--device", type=str, default = "cuda:1")
 		self.parser.add_argument("--shuffle",default=True)
 		
@@ -97,6 +98,42 @@ class Args:
 			if not os.path.isdir(args.logging_path):
 				os.makedirs(args.logging_path)	
 		return args
+
+
+def test_diffusion(diff_args, seq_args,model_path):
+	"""
+	Testing diffusion model
+	"""
+	device = torch.device(diff_args.device)
+
+	test_data_set = bfs_dataset(
+						   trajec_max_len = diff_args.Nt,#seq_args.trajec_max_len,
+						   start_n        = seq_args.start_n,
+						   flag = 'test',
+						   val_split = 0.7,
+						   test_split = 0.8
+						   )
+	test_loader = DataLoader(dataset=test_data_set,
+							shuffle=False,
+							batch_size=diff_args.batch_size,
+							pin_memory=True,
+							num_workers=4)
+	
+	with torch.no_grad():
+		for idx, batch in tqdm(enumerate(test_loader)):
+			batch = batch.to(device)
+			batch = batch[:,65:,:] # only predicting after the warmup
+			batch = batch.to(diff_args.device).float()
+			batch_spectral = torch.fft.rfft(batch,dim = -1)[:,:,:8]
+			batch_coarse2fine = torch.fft.irfft(batch_spectral,axis=-1,n=64)
+
+			bsize = batch.shape[0]
+			ntime = batch.shape[1] 
+			batch_coarse2fine = batch_coarse2fine.reshape([bsize,1,1,ntime,64])
+			#batch_coarse      = down_sampler(batch.reshape([bsize*ntime,1,1,64]))
+			#batch_coarse2fine = up_sampler(batch_coarse).reshape([bsize,1,1,ntime,64])
+			cond_images = batch_coarse2fine.permute(0,2,1,3,4)
+			generated_images = trainer.sample(cond_images = cond_images, batch_size=bsize, num_sample_steps=diff_args.num_sample_steps)
 
 
 
@@ -197,7 +234,38 @@ if __name__ == '__main__':
                seq_args=seq_args,
                trainer=trainer,
                data_loader=data_loader)
+	'''
+	trainer = ImagenTrainer.load(model_path,only_model=True)
+	test_data_set = bfs_dataset(
+						   trajec_max_len = diff_args.Nt,#seq_args.trajec_max_len,
+						   start_n        = seq_args.start_n,
+						   flag = 'test',
+						   val_split = 0.7,
+						   test_split = 0.8
+						   )
+	test_loader = DataLoader(dataset=test_data_set,
+							shuffle=False,
+							batch_size=diff_args.batch_size,
+							pin_memory=True,
+							num_workers=4)
 	
+	with torch.no_grad():
+		for idx, batch in tqdm(enumerate(test_loader)):
+			batch = batch.to(device)
+			batch = batch[:,65:,:] # only predicting after the warmup
+			batch = batch.to(diff_args.device).float()
+			batch_spectral = torch.fft.rfft(batch,dim = -1)[:,:,:8]
+			batch_coarse2fine = torch.fft.irfft(batch_spectral,axis=-1,n=64)
+
+			bsize = batch.shape[0]
+			ntime = batch.shape[1] 
+			batch_coarse2fine = batch_coarse2fine.reshape([bsize,1,1,ntime,64])
+			#batch_coarse      = down_sampler(batch.reshape([bsize*ntime,1,1,64]))
+			#batch_coarse2fine = up_sampler(batch_coarse).reshape([bsize,1,1,ntime,64])
+			cond_images = batch_coarse2fine.permute(0,2,1,3,4)
+			generated_images = trainer.sample(cond_images = cond_images, batch_size=bsize, num_sample_steps=diff_args.num_sample_steps)
+			mse_loss = 
+'''
 	if diff_args.distributed:
 		dist.destroy_process_group()
 		print("Distributed process group destroyed.")

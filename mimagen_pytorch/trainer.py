@@ -752,17 +752,17 @@ class ImagenTrainer(nn.Module):
     def load(self, path, only_model = False, strict = True, noop_if_not_exist = False):
         fs = self.fs
 
-        if noop_if_not_exist and not fs.exists(path):
+        if noop_if_not_exist and not os.path.exists(path):
             self.print(f'trainer checkpoint not found at {str(path)}')
             return
 
-        assert fs.exists(path), f'{path} does not exist'
+        assert os.exists(path), f'{path} does not exist'
 
         self.reset_ema_unets_all_one_device()
 
         # to avoid extra GPU memory usage in main process when using Accelerate
 
-        with fs.open(path) as f:
+        with open(path,'rb') as f:
             loaded_obj = torch.load(f, map_location='cpu')
 
         if version.parse(__version__) != version.parse(loaded_obj['version']):
