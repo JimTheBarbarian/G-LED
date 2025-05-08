@@ -234,6 +234,7 @@ if __name__ == '__main__':
                seq_args=seq_args,
                trainer=trainer,
                data_loader=data_loader)
+	
 	'''
 	trainer = ImagenTrainer.load(model_path,only_model=True)
 	test_data_set = bfs_dataset(
