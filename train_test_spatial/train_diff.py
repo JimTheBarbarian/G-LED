@@ -32,8 +32,7 @@ def train_diff(diff_args,
 									'best_model_sofar_epoch'),np.ones(2)*epoch)
 		loss_list.append(loss) 
 		print("finish training epoch {}".format(epoch))
-		return loss_list
-
+	return loss_list
 
 def train_epoch(diff_args,seq_args, trainer, data_loader,down_sampler,up_sampler):
 	loss_epoch = []
