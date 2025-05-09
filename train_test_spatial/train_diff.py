@@ -12,25 +12,27 @@ def train_diff(diff_args,
 			   trainer,
 			   data_loader):
 	loss_list = []
+	avg_epoch_loss = []
 	print('We are training for {} epochs'.format(diff_args.epoch_num))
 	for epoch in range(diff_args.epoch_num):
 		down_sampler = torch.nn.Upsample(size=[1,seq_args.coarse_dim], 
 								     	 mode=seq_args.coarse_mode)
 		up_sampler   = torch.nn.Upsample(size=[1, 64], 
 								     	 mode=seq_args.coarse_mode)
-		model, loss = train_epoch(diff_args,seq_args, trainer, data_loader,down_sampler,up_sampler)
-		if epoch % 1 ==0 and epoch > 0:
-			save_loss(diff_args, loss_list+[loss],epoch)
-			model.save(path=os.path.join(diff_args.model_save_path, 
-										 'model_epoch_' + str(epoch)))
+		model, loss, avg_loss = train_epoch(diff_args,seq_args, trainer, data_loader,down_sampler,up_sampler)
+		loss_list += loss
 		if epoch >= 1:
-			if loss < min(loss_list):
-				save_loss(diff_args, loss_list+[loss],epoch)
+			if avg_loss < min(avg_epoch_loss):
 				model.save(path=os.path.join(diff_args.model_save_path, 
 											'best_model_sofar'))
 				np.savetxt(os.path.join(diff_args.model_save_path, 
 									'best_model_sofar_epoch'),np.ones(2)*epoch)
-		loss_list.append(loss) 
+		if epoch == diff_args.epoch_num - 1:
+			model.save(path=os.path.join(diff_args.model_save_path, 
+										'last_model'))
+			np.savetxt(os.path.join(diff_args.model_save_path, 
+								'last_model_epoch'),np.ones(2)*epoch)
+			save_loss(diff_args, loss_list, epoch)
 		print("finish training epoch {}".format(epoch))
 	return loss_list
 
@@ -61,5 +63,6 @@ def train_epoch(diff_args,seq_args, trainer, data_loader,down_sampler,up_sampler
 		print("loss is ", loss)
 	
 		loss_epoch.append(loss)
+	avg_epoch_loss = sum(loss_epoch)/len(loss_epoch)
 	print(len(loss_epoch))
-	return trainer, loss_epoch
+	return trainer, loss_epoch, avg_epoch_loss
