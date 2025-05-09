@@ -21,6 +21,8 @@ def train_diff(diff_args,
 								     	 mode=seq_args.coarse_mode)
 		model, loss, avg_loss = train_epoch(diff_args,seq_args, trainer, data_loader,down_sampler,up_sampler)
 		loss_list += loss
+		avg_epoch_loss.append(avg_loss)
+		print("epoch {} loss is {}".format(epoch, avg_loss))
 		if epoch >= 1:
 			if avg_loss < min(avg_epoch_loss):
 				model.save(path=os.path.join(diff_args.model_save_path, 
