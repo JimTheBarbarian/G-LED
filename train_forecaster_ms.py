@@ -151,8 +151,8 @@ def train_epoch(args,model_real,model_imag, train_loader, optimizer_real,optimiz
                 optimizer_imag.zero_grad()
                 current_input_real = data_spectral_real[:, j:j + args.input_len, :]
                 current_input_imag = data_spectral_imag[:, j:j + args.input_len, :]
-                ground_truth_real = current_input_real[:, j + args.input_len:j + args.input_len + args.pred_len, :]
-                ground_truth_imag = current_input_imag[:, j + args.input_len:j + args.input_len + args.pred_len, :]
+                ground_truth_real = data_spectral_real[:, j + args.input_len:j + args.input_len + args.pred_len, :]
+                ground_truth_imag = data_spectral_imag[:, j + args.input_len:j + args.input_len + args.pred_len, :]
 
                 if args.decoder:
                     label_start_idx = args.input_len - args.label_len
