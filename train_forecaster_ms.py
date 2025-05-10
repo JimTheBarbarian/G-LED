@@ -440,9 +440,9 @@ def main():
     parser.add_argument('--input_len', type=int, default=64, help='Input sequence length')
     parser.add_argument('--pred_len', type=int, default=64, help='Prediction sequence length')
     parser.add_argument('--label_len', type=int, default=32, help='Label length for decoder input (overlap with input)')
-    parser.add_argument('--enc_in', type=int, default=16, help='Encoder input size (spatial dimension)') # Assuming 64 based on other files
-    parser.add_argument('--dec_in', type=int, default=16, help='Decoder input size (spatial dimension)')
-    parser.add_argument('--c_out', type=int, default=16, help='Output size (spatial dimension)')
+    parser.add_argument('--enc_in', type=int, default=33, help='Encoder input size (spatial dimension)') # Assuming 64 based on other files
+    parser.add_argument('--dec_in', type=int, default=33, help='Decoder input size (spatial dimension)')
+    parser.add_argument('--c_out', type=int, default=33, help='Output size (spatial dimension)')
     parser.add_argument('--factor', type=int, default=5, help='')
     parser.add_argument('--window_size', type=int, default=16, help='')
     parser.add_argument('--num_windows', type=int, default=2, help='')
