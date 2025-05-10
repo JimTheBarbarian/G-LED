@@ -37,7 +37,7 @@ from layers.SelfAttention_Family import ProbAttention, FullAttention, AttentionL
 from layers.Transformer_EncDec import ConvLayer, EncoderLayer, Encoder, FourierMix, DecoderLayerWithFourier, Decoder
 
 
-def train_test_seq(args, model, train_loader, sampler_train, valid_loader, test_loader,optimizer, scheduler, num_epochs):
+def train_test_seq(args, model_real,model_imag, train_loader, sampler_train, valid_loader, test_loader,optimizer_real, optimizer_imag, scheduler_real,scheduler_imag, num_epochs):
     best_val_mre = float('inf')
     down_sampler = torch.nn.Upsample(size=(1,16),mode='bilinear')
     for epoch in range(num_epochs):
@@ -48,25 +48,29 @@ def train_test_seq(args, model, train_loader, sampler_train, valid_loader, test_
             sampler_train.set_epoch(epoch)
 
         # Training Step
-        train_loss = train_epoch(args, model, train_loader, optimizer, down_sampler=down_sampler, device=args.gpu) # Use args.gpu from setup
+        train_loss = train_epoch(args, model_real,model_imag, train_loader, optimizer_real,optimizer_imag, down_sampler=down_sampler, device=args.gpu) # Use args.gpu from setup
         if is_main_process():
             print(f"Epoch {epoch+1} Train Loss: {train_loss:.6f}")
 
         # Validation Step (only on main process for efficiency)
         if is_main_process():
-            max_mre, min_mre, mean_mre, sigma3 = valid_epoch(args, model.module, valid_loader, device=args.gpu, down_sampler=down_sampler) # Use model.module for validation
+            max_mre, min_mre, mean_mre, sigma3 = valid_epoch(args, model_real.module, model_imag.module,valid_loader, device=args.gpu, down_sampler=down_sampler) # Use model.module for validation
             print(f'Validation - Max MRE: {max_mre:.4f}, Mean MRE: {mean_mre:.4f}, Min MRE: {min_mre:.4f}, 3 Sigma: {sigma3:.4f}')
             print(f'Time for Epoch {epoch+1}: {time.time()-tic:.2f}s')
 
             # Save model based on validation performance
             if mean_mre < best_val_mre:
                 best_val_mre = mean_mre
-                save_path = os.path.join(args.output_dir, f"{args.model_name}_best.pt")
-                torch.save(model.module.state_dict(), save_path)
-                print(f"New best model saved to {save_path}")
+                save_path_real = os.path.join(args.output_dir, f"{args.model_name}_real_best.pt")
+                save_path_imag = os.path.join(args.output_dir, f"{args.model_name}_imag_best.pt")
+                torch.save(model_real.module.state_dict(), save_path_real)
+                torch.save(model_imag.module.state_dict(), save_path_imag)
+                print(f"New best models saved to {save_path_real} and {save_path_imag}")
 
         # Step the scheduler
-        scheduler.step()
+        scheduler_real.step()
+        scheduler_imag.step()
+
 
         # Ensure all processes sync before next epoch
         if args.distributed:
@@ -77,36 +81,50 @@ def train_test_seq(args, model, train_loader, sampler_train, valid_loader, test_
     if is_main_process():
         print("\n--- Final Testing ---")
         # Load best model for testing
-        best_model_path = os.path.join(args.output_dir, f"{args.model_name}_best.pt")
-        if os.path.exists(best_model_path):
-             # Need to instantiate a non-DDP model to load state_dict easily
+        best_model_path_real = os.path.join(args.output_dir, f"{args.model_name}_real_best.pt")
+        best_model_path_imag = os.path.join(args.output_dir, f"{args.model_name}_imag_best.pt")
+
+        if os.path.exists(best_model_path_real) and os.path.exists(best_model_path_imag):
             if args.model_name == 'informer':
-                model_instance = informer(args).to(args.gpu) # Pass model_args for informer
+                model_instance_real = informer(args).to(args.gpu)
             elif args.model_name == 'iTransformer':
-                model_instance = iTransformer(args).to(args.gpu)
+                model_instance_real = iTransformer(args).to(args.gpu)
             elif args.model_name == 'Spectcaster':
-                model_instance = Spectcaster(args).to(args.gpu)
+                model_instance_real = Spectcaster(args).to(args.gpu)
             elif args.model_name == 'DLinear':
-                model_instance = DLinear(input_len = args.input_len, output_len = args.pred_len, individual = True, input_features = args.enc_in, output_features = args.c_out)
-                model_instance = model_instance.to(args.gpu)
-            else:
-                model_instance = FWin(seq_len=args.input_len, label_len = args.label_len, out_len=args.pred_len, enc_in=args.enc_in,dec_in=args.dec_in,c_out=args.c_out,window_size=args.window_size,attn = 'prob',num_windows=args.num_windows,d_model = args.d_model, d_ff = args.d_ff).to(args.gpu) 
-            model_instance.load_state_dict(torch.load(best_model_path, map_location=f'cuda:{args.gpu}'))
-            model_instance.eval()
-            print(f"Loaded best model from {best_model_path} for testing.")
-            error_curve = test_epoch(args, model_instance, test_loader, device=args.gpu,down_sampler = down_sampler) # Test the best single model
+                model_instance_real = DLinear(input_len=args.input_len, output_len=args.pred_len, individual=True, input_features=args.enc_in, output_features=args.c_out).to(args.gpu)
+            else: 
+                model_instance_real = FWin(seq_len=args.input_len, label_len=args.label_len, out_len=args.pred_len, enc_in=args.enc_in, dec_in=args.dec_in, c_out=args.c_out, window_size=args.window_size, attn='prob', num_windows=args.num_windows, d_model=args.d_model, d_ff=args.d_ff).to(args.gpu)
+            model_instance_real.load_state_dict(torch.load(best_model_path_real, map_location=f'cuda:{args.gpu}'))
+            model_instance_real.eval()
+
+            if args.model_name == 'informer':
+                model_instance_imag = informer(args).to(args.gpu)
+            elif args.model_name == 'iTransformer':
+                model_instance_imag = iTransformer(args).to(args.gpu)
+            elif args.model_name == 'Spectcaster':
+                model_instance_imag = Spectcaster(args).to(args.gpu)
+            elif args.model_name == 'DLinear':
+                model_instance_imag = DLinear(input_len=args.input_len, output_len=args.pred_len, individual=True, input_features=args.enc_in, output_features=args.c_out).to(args.gpu)
+            else: 
+                model_instance_imag = FWin(seq_len=args.input_len, label_len=args.label_len, out_len=args.pred_len, enc_in=args.enc_in, dec_in=args.dec_in, c_out=args.c_out, window_size=args.window_size, attn='prob', num_windows=args.num_windows, d_model=args.d_model, d_ff=args.d_ff).to(args.gpu)
+            model_instance_imag.load_state_dict(torch.load(best_model_path_imag, map_location=f'cuda:{args.gpu}'))
+            model_instance_imag.eval()
+
+            print(f"Loaded best real model from {best_model_path_real} and best imaginary model from {best_model_path_imag} for testing.")
+            error_curve = test_epoch(args, model_instance_real, model_instance_imag, test_loader, device=args.gpu, down_sampler=down_sampler) # Test the best single models
             print(f"Test Error Curve (Mean Relative Error per Step): {error_curve}")
         else:
-            print("No best model found to test.")
+            print("No best real and/or imaginary model found to test.")
 
 
-    return error_curve # Return the DDP model and error curve (only valid on main process)
+    return error_curve 
 
 
-def train_epoch(args,model, train_loader, optimizer,device,down_sampler):
-    model.train()
+def train_epoch(args,model_real,model_imag, train_loader, optimizer_real,optimizer_imag,device,down_sampler):
+    model_real.train()
+    model_imag.train()
     total_loss = 0.0
-    # Wrap train_loader with tqdm only on main process
     loader_wrapper = tqdm(train_loader) if is_main_process() else train_loader
 
     num_pred_segments = (args.sample_len - args.input_len) // args.pred_len 
@@ -115,31 +133,39 @@ def train_epoch(args,model, train_loader, optimizer,device,down_sampler):
     for batch_idx, (batch) in enumerate(loader_wrapper):
         batch = batch.to(device).float()
         if args.downsample:
-            #data_spectral = torch.fft.rfft(data)[:,:,8]
+            data_spectral = torch.fft.rfft(batch-torch.mean(batch,dim = (1,2), keepdim=True),dim=-1)
+            data_spectral_real = data_spectral.real
+            data_spectral_imag = data_spectral.imag
             #data_coarse2fine = torch.fft.irfft(data_spectral, axis=-1,n=17)
-            b_size = batch.shape[0]
+            #b_size = batch.shape[0]
             num_time = batch.shape[1]
 		    #num_velocity = 2 # Not doing BFS equations
-            batch = batch.reshape([b_size,num_time, 1,64])
-            batch_coarse = down_sampler(batch).reshape([b_size, 
-													num_time, 
+            #batch = batch.reshape([b_size,num_time, 1,64])
+            #batch_coarse = down_sampler(batch).reshape([b_size, 
+			#										num_time, 
 	
-													args.coarse_dim])
+			#										args.coarse_dim])
             num_predicts = (num_time - args.input_len - args.pred_len + 1) // args.stride
             for j in range(0,num_predicts):
-                model.train()
-                optimizer.zero_grad()
-                current_input = batch_coarse[:, j:j + args.input_len, :]
+                optimizer_real.zero_grad()
+                optimizer_imag.zero_grad()
+                current_input_real = data_spectral_real[:, j:j + args.input_len, :]
+                current_input_imag = data_spectral_imag[:, j:j + args.input_len, :]
                 if args.decoder:
                     label_start_idx = args.input_len - args.label_len
-                    label = torch.cat([current_input[:, label_start_idx:args.input_len, :], torch.zeros((current_input.shape[0],args.pred_len, current_input.shape[2]),device = device)], dim=1)
-                    output = model(current_input,label)
-                output = model(current_input)
-                ground_truth = batch_coarse[:, j + args.input_len:j + args.input_len + args.pred_len, :]
-                loss = F.mse_loss(output, ground_truth)
-                total_loss += loss.item() / (num_pred_segments * num_predicts)
-                loss.backward()
-                optimizer.step()
+                    label_real = torch.cat([current_input_real[:, label_start_idx:args.input_len, :], torch.zeros((current_input_real.shape[0],args.pred_len, current_input_real.shape[2]),device = device)], dim=1)
+                    label_imag = torch.cat([current_input_imag[:, label_start_idx:args.input_len, :], torch.zeros((current_input_imag.shape[0],args.pred_len, current_input_imag.shape[2]),device = device)], dim=1)
+                    output_real = model_real(current_input_real,label_real)
+                    output_imag = model_imag(current_input_imag,label_imag)
+                ground_truth_real = current_input_real[:, j + args.input_len:j + args.input_len + args.pred_len, :]
+                ground_truth_imag = current_input_imag[:, j + args.input_len:j + args.input_len + args.pred_len, :]
+                loss_real = F.mse_loss(output_real, ground_truth_real)
+                loss_imag = F.mse_loss(output_imag, ground_truth_imag)
+                total_loss += (loss_real.item() +loss_imag.item())/ (num_pred_segments * num_predicts)
+                loss_real.backward()
+                loss_imag.backward()
+                optimizer_real.step()
+                optimizer_imag.step()
 
 
         '''
@@ -187,8 +213,9 @@ def train_epoch(args,model, train_loader, optimizer,device,down_sampler):
     return avg_loss
 
 
-def valid_epoch(args, model, valid_loader,device,down_sampler):
-    model.eval()
+def valid_epoch(args, model_real, model_imag, valid_loader,device,down_sampler):
+    model_real.eval()
+    model_imag.eval()
     batch_relative_errors= []
     loader_wrapper = tqdm(valid_loader) if is_main_process() else valid_loader
 
@@ -199,38 +226,55 @@ def valid_epoch(args, model, valid_loader,device,down_sampler):
         for batch_idx, (data) in enumerate(loader_wrapper):
             data = data.to(device).float()
             if args.downsample:
-                #data_spectral = torch.fft.rfft(data)[:,:,8]
+                data_spectral = torch.fft.rfft(data-torch.mean(data,dim = (1,2), keepdim=True),dim=-1)
+                data_spectral_real = data_spectral.real
+                data_spectral_imag = data_spectral.imag
                 #data_coarse2fine = torch.fft.irfft(data_spectral, axis=-1,n=17)
                 b_size = data.shape[0]
                 num_time = data.shape[1]
-                data = data.reshape([b_size,num_time, 1,64])
-                data_coarse = down_sampler(data).reshape([b_size, 
-                                                    num_time, 
+                #data = data.reshape([b_size,num_time, 1,64])
+                #data_coarse = down_sampler(data).reshape([b_size, 
+                #                                    num_time, 
     
-                                                    args.coarse_dim])
-                data = data_coarse
-            ground_truth = data[:, args.input_len: args.input_len + total_pred_len, :]
+                #                                    args.coarse_dim])
+                #data = data_coarse
+            current_input_real = data_spectral_real[:, :args.input_len, :]
+            current_input_imag = data_spectral_imag[:, :args.input_len, :]
+            all_predictions_real = []
+            all_predictions_imag = []
 
-            current_input = data[:, :args.input_len, :]
-            all_predictions = []
+            original_spatial_dim_size = data.shape[-1] # Get original spatial dimension size from input data
+            ground_truth_spatial = data[:, args.input_len: args.input_len + total_pred_len, :]
+
             for i in range(num_pred_segments):
                 label_start_idx = args.input_len - args.label_len
-                label = torch.cat([current_input[:, label_start_idx:args.input_len, :], torch.zeros((current_input.shape[0],args.pred_len, current_input.shape[2]),device = device)], dim=1)
-                next_segment = model(current_input, label) # Predict the next segment
-                all_predictions.append(next_segment)
+                
+                label_real = torch.cat([current_input_real[:, label_start_idx:args.input_len, :], torch.zeros((current_input_real.shape[0],args.pred_len, current_input_real.shape[2]),device = device)], dim=1)
+                label_imag = torch.cat([current_input_imag[:, label_start_idx:args.input_len, :], torch.zeros((current_input_imag.shape[0],args.pred_len, current_input_imag.shape[2]),device = device)], dim=1)
+                
+                next_segment_real = model_real(current_input_real, label_real)
+                next_segment_imag = model_imag(current_input_imag, label_imag)
+                
+                all_predictions_real.append(next_segment_real)
+                all_predictions_imag.append(next_segment_imag)
 
                 if args.input_len == args.pred_len:
-                    current_input = next_segment
+                    current_input_real = next_segment_real
+                    current_input_imag = next_segment_imag
                 else:
-                    combined = torch.cat([current_input[:, args.pred_len:, :], next_segment], dim=1)
-                    current_input = combined 
+                    current_input_real = torch.cat([current_input_real[:, args.pred_len:, :], next_segment_real], dim=1)
+                    current_input_imag = torch.cat([current_input_imag[:, args.pred_len:, :], next_segment_imag], dim=1)
             
-            final_predictions = torch.cat(all_predictions, dim=1) # Concatenate all predictions
+            final_predictions_real = torch.cat(all_predictions_real, dim=1)
+            final_predictions_imag = torch.cat(all_predictions_imag, dim=1)
 
-            comparison_len = min(final_predictions.shape[1], ground_truth.shape[1])
-            batch_mse = F.mse_loss(final_predictions[:, :comparison_len, :], ground_truth[:, :comparison_len, :])
+            final_predictions_complex = torch.complex(final_predictions_real, final_predictions_imag)
+            final_predictions_reconstructed = torch.fft.irfft(final_predictions_complex, n=original_spatial_dim_size, dim=-1)
 
-            target_norm_sq = F.mse_loss(ground_truth[:, :comparison_len, :], torch.zeros_like(ground_truth[:, :comparison_len, :]))
+            comparison_len = min(final_predictions_reconstructed.shape[1], ground_truth_spatial.shape[1])
+            batch_mse = F.mse_loss(final_predictions_reconstructed[:, :comparison_len, :], ground_truth_spatial[:, :comparison_len, :])
+
+            target_norm_sq = F.mse_loss(ground_truth_spatial[:, :comparison_len, :], torch.zeros_like(ground_truth_spatial[:, :comparison_len, :]))
 
             batch_r_er = batch_mse / target_norm_sq if target_norm_sq > 1e-9 else torch.tensor(0.0, device=device)
             batch_relative_errors.append(batch_r_er.item())
@@ -246,8 +290,9 @@ def valid_epoch(args, model, valid_loader,device,down_sampler):
 
     return max_mre, min_mre, mean_mre, sigma3
 
-def test_epoch(args, model, test_loader,device,down_sampler):
-    model.eval()
+def test_epoch(args, model_real, model_imag, test_loader,device,down_sampler):
+    model_real.eval()
+    model_imag.eval()
 
     num_pred_segments = (args.sample_len - args.input_len) // args.pred_len
     total_pred_len = num_pred_segments * args.pred_len
@@ -270,25 +315,51 @@ def test_epoch(args, model, test_loader,device,down_sampler):
     
                                                     args.coarse_dim])
                 data = data_coarse
+            
             ground_truth = data[:, args.input_len: args.input_len + total_pred_len, :]
-            current_input = data[:, :args.input_len, :]
-            all_predictions = []
+            original_spatial_dim_size = data.shape[-1]
+
+            data_spectral = torch.fft.rfft(data - torch.mean(data, dim=(1,2), keepdim=True), dim=-1)
+            data_spectral_real = data_spectral.real
+            data_spectral_imag = data_spectral.imag
+
+            current_input_real = data_spectral_real[:, :args.input_len, :]
+            current_input_imag = data_spectral_imag[:, :args.input_len, :]
+            all_predictions_real = []
+            all_predictions_imag = []
 
             for i in range(num_pred_segments):
                 label_start_idx = args.input_len - args.label_len
-                label = torch.cat([current_input[:, label_start_idx:args.input_len, :], torch.zeros((current_input.shape[0],args.pred_len, current_input.shape[2]),device = device)], dim=1)
-                next_segment = model(current_input, label)
-                all_predictions.append(next_segment)
+                
+                label_real = torch.cat([current_input_real[:, label_start_idx:args.input_len, :], torch.zeros((current_input_real.shape[0],args.pred_len, current_input_real.shape[2]),device = device)], dim=1)
+                label_imag = torch.cat([current_input_imag[:, label_start_idx:args.input_len, :], torch.zeros((current_input_imag.shape[0],args.pred_len, current_input_imag.shape[2]),device = device)], dim=1)
+                
+                next_segment_real = model_real(current_input_real, label_real)
+                next_segment_imag = model_imag(current_input_imag, label_imag)
+                
+                all_predictions_real.append(next_segment_real)
+                all_predictions_imag.append(next_segment_imag)
 
                 if args.input_len == args.pred_len:
-                    current_input = next_segment
+                    current_input_real = next_segment_real
+                    current_input_imag = next_segment_imag
                 else:
-                    combined = torch.cat([current_input[:, args.pred_len:, :], next_segment], dim=1)
-                    current_input = combined
-                
-            final_predictions = torch.cat(all_predictions, dim=1) 
+                    current_input_real = torch.cat([current_input_real[:, args.pred_len:, :], next_segment_real], dim=1)
+                    current_input_imag = torch.cat([current_input_imag[:, args.pred_len:, :], next_segment_imag], dim=1)
+            
+            final_predictions_real = torch.cat(all_predictions_real, dim=1)
+            final_predictions_imag = torch.cat(all_predictions_imag, dim=1)
+
+            final_predictions_complex = torch.complex(final_predictions_real, final_predictions_imag)
+            final_predictions_reconstructed = torch.fft.irfft(final_predictions_complex, n=original_spatial_dim_size, dim=-1)
+            
+            final_predictions = final_predictions_reconstructed
             comparison_len = min(final_predictions.shape[1], ground_truth.shape[1])
 
+
+
+
+            # Calculate MSE per prediction step: Mean over Batch and Features
 
 
 
@@ -473,57 +544,81 @@ def main():
     if is_main_process(): print("Datasets loaded.")
 
     # --- Instantiate Model ---
+    if is_main_process(): print("Datasets loaded.")
+
+    # --- Instantiate Model ---
     base_output_dir = args.output_dir # Base output directory for saving models
-    for model_name in ['DLinear']:
+    for model_name in ['informer','iTransformer','Spectcaster','FWin','DLinear']: # Add other model names as needed e.g. ['FWin', 'informer', 'iTransformer', 'Spectcaster', 'DLinear']
         args.model_name = model_name
         args.output_dir = os.path.join(base_output_dir, args.model_name) # Set model-specific output dir
         if is_main_process():
             os.makedirs(args.output_dir, exist_ok=True) # Create model-specific output dir if it doesn't exist
-        if is_main_process(): print(f"Creating model: {args.model_name}")
+        if is_main_process(): print(f"Creating models: {args.model_name}")
+
+        # Instantiate real model
         if args.model_name == 'informer':
             args.num_epochs = 10
             args.label_len = 32
-            model = informer(args).to(device) # Pass model_args for informer
+            model_real = informer(args).to(device)
         elif args.model_name == 'iTransformer':
             args.num_epochs = 10
             args.label_len = 32
-            model = iTransformer(args).to(device)
+            model_real = iTransformer(args).to(device)
         elif args.model_name == 'Spectcaster':
             args.label_len = 32
-            model = Spectcaster(args).to(device)
-            model = nn.SyncBatchNorm.convert_sync_batchnorm(model) # Convert to SyncBatchNorm for DDP
+            model_real = Spectcaster(args).to(device)
+            if args.distributed: model_real = nn.SyncBatchNorm.convert_sync_batchnorm(model_real)
         elif args.model_name == 'DLinear':
-            model = DLinear(input_len = args.input_len, output_len = args.pred_len, individual = True, input_features = args.enc_in, output_features = args.c_out)
-            model = model.to(device)
-        else:
-            args.label_len = 32 # Set label_len for FWin
+            model_real = DLinear(input_len = args.input_len, output_len = args.pred_len, individual = True, input_features = args.enc_in, output_features = args.c_out)
+            model_real = model_real.to(device)
+        else: # FWin as default
+            args.label_len = 32 
             args.num_epochs = 10
-            model = FWin(seq_len=args.input_len, label_len = args.label_len, out_len=args.pred_len, enc_in=args.enc_in,dec_in=args.dec_in,c_out=args.c_out,window_size=args.window_size,attn = 'prob',num_windows=args.num_windows,d_model = args.d_model, d_ff = args.d_ff).to(device) # Placeholder signature
+            model_real = FWin(seq_len=args.input_len, label_len = args.label_len, out_len=args.pred_len, enc_in=args.enc_in,dec_in=args.dec_in,c_out=args.c_out,window_size=args.window_size,attn = 'prob',num_windows=args.num_windows,d_model = args.d_model, d_ff = args.d_ff).to(device)
+
+        # Instantiate imaginary model
+        if args.model_name == 'informer':
+            model_imag = informer(args).to(device)
+        elif args.model_name == 'iTransformer':
+            model_imag = iTransformer(args).to(device)
+        elif args.model_name == 'Spectcaster':
+            model_imag = Spectcaster(args).to(device)
+            if args.distributed: model_imag = nn.SyncBatchNorm.convert_sync_batchnorm(model_imag)
+        elif args.model_name == 'DLinear':
+            model_imag = DLinear(input_len = args.input_len, output_len = args.pred_len, individual = True, input_features = args.enc_in, output_features = args.c_out)
+            model_imag = model_imag.to(device)
+        else: # FWin as default
+            model_imag = FWin(seq_len=args.input_len, label_len = args.label_len, out_len=args.pred_len, enc_in=args.enc_in,dec_in=args.dec_in,c_out=args.c_out,window_size=args.window_size,attn = 'prob',num_windows=args.num_windows,d_model = args.d_model, d_ff = args.d_ff).to(device)
 
         if args.distributed:
-
-            model = DDP(model, device_ids=[args.local_rank], output_device=args.local_rank, find_unused_parameters=False) # Adjust find_unused_parameters if needed
-        if is_main_process(): print(f"Model created on device: {device}")
+            model_real = DDP(model_real, device_ids=[args.local_rank], output_device=args.local_rank, find_unused_parameters=False)
+            model_imag = DDP(model_imag, device_ids=[args.local_rank], output_device=args.local_rank, find_unused_parameters=False)
+        if is_main_process(): print(f"Models created on device: {device}")
 
 
         # --- Optimizer and Scheduler ---
-        optimizer = optim.Adam(model.parameters(), lr=args.learning_rate)
-        scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=args.scheduler_step_size, gamma=args.scheduler_gamma)
+        optimizer_real = optim.Adam(model_real.parameters(), lr=args.learning_rate)
+        scheduler_real = optim.lr_scheduler.StepLR(optimizer_real, step_size=args.scheduler_step_size, gamma=args.scheduler_gamma)
+        optimizer_imag = optim.Adam(model_imag.parameters(), lr=args.learning_rate)
+        scheduler_imag = optim.lr_scheduler.StepLR(optimizer_imag, step_size=args.scheduler_step_size, gamma=args.scheduler_gamma)
 
         # --- Run Training ---
         if is_main_process():
             print(f"\nStarting training for {args.model_name}...")
 
         error_curve = train_test_seq(
-        args=args,
-        model=model, # Pass the DDP model
-        train_loader=train_loader,
-        sampler_train=train_sampler,
-        valid_loader=valid_loader,
-        test_loader=test_loader,
-        optimizer=optimizer,
-        scheduler=scheduler,
-        num_epochs=args.num_epochs
+            args=args,
+            model_real=model_real, 
+            model_imag=model_imag,
+            train_loader=train_loader,
+            sampler_train=train_sampler,
+            valid_loader=valid_loader,
+            test_loader=test_loader,
+            optimizer_real=optimizer_real,
+            optimizer_imag=optimizer_imag,
+            scheduler_real=scheduler_real,
+            scheduler_imag=scheduler_imag,
+            num_epochs=args.num_epochs
         )
 
     # --- Save Final Results (Optional) ---

@@ -61,9 +61,9 @@ def get_data_location(args):
 
 def save_loss(args, loss_list, Nt,):
 	plt.figure()
-	plt.plot(range(len(loss_list)),loss_list,'-o')
+	plt.plot(range(len(loss_list)),loss_list)
 	plt.yscale('log')
-	plt.xlabel('epoch')
+	plt.xlabel('Training Step')
 	plt.ylabel('loss')
 	plt.title('Training loss curve')
 	print(os.path.join(args.logging_path, 'loss_curve.png'))
