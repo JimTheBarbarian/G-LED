@@ -151,14 +151,15 @@ def train_epoch(args,model_real,model_imag, train_loader, optimizer_real,optimiz
                 optimizer_imag.zero_grad()
                 current_input_real = data_spectral_real[:, j:j + args.input_len, :]
                 current_input_imag = data_spectral_imag[:, j:j + args.input_len, :]
+                ground_truth_real = current_input_real[:, j + args.input_len:j + args.input_len + args.pred_len, :]
+                ground_truth_imag = current_input_imag[:, j + args.input_len:j + args.input_len + args.pred_len, :]
+
                 if args.decoder:
                     label_start_idx = args.input_len - args.label_len
                     label_real = torch.cat([current_input_real[:, label_start_idx:args.input_len, :], torch.zeros((current_input_real.shape[0],args.pred_len, current_input_real.shape[2]),device = device)], dim=1)
                     label_imag = torch.cat([current_input_imag[:, label_start_idx:args.input_len, :], torch.zeros((current_input_imag.shape[0],args.pred_len, current_input_imag.shape[2]),device = device)], dim=1)
                     output_real = model_real(current_input_real,label_real)
                     output_imag = model_imag(current_input_imag,label_imag)
-                ground_truth_real = current_input_real[:, j + args.input_len:j + args.input_len + args.pred_len, :]
-                ground_truth_imag = current_input_imag[:, j + args.input_len:j + args.input_len + args.pred_len, :]
                 loss_real = F.mse_loss(output_real, ground_truth_real)
                 loss_imag = F.mse_loss(output_imag, ground_truth_imag)
                 total_loss += (loss_real.item() +loss_imag.item())/ (num_pred_segments * num_predicts)
