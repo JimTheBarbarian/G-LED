@@ -310,12 +310,12 @@ def test_epoch(args, model_real, model_imag, test_loader,device,down_sampler):
                 #data_coarse2fine = torch.fft.irfft(data_spectral, axis=-1,n=17)
                 b_size = data.shape[0]
                 num_time = data.shape[1]
-                data = data.reshape([b_size,num_time, 1,64])
-                data_coarse = down_sampler(data).reshape([b_size, 
-                                                    num_time, 
+                #data = data.reshape([b_size,num_time, 1,64])
+                #data_coarse = down_sampler(data).reshape([b_size, 
+                #                                    num_time, 
     
-                                                    args.coarse_dim])
-                data = data_coarse
+                #                                    args.coarse_dim])
+                #data = data_coarse
             
             ground_truth = data[:, args.input_len: args.input_len + total_pred_len, :]
             original_spatial_dim_size = data.shape[-1]
@@ -549,7 +549,7 @@ def main():
 
     # --- Instantiate Model ---
     base_output_dir = args.output_dir # Base output directory for saving models
-    for model_name in ['informer','iTransformer','Spectcaster','FWin','DLinear']: # Add other model names as needed e.g. ['FWin', 'informer', 'iTransformer', 'Spectcaster', 'DLinear']
+    for model_name in ['iTransformer','Spectcaster','FWin','DLinear']: # Add other model names as needed e.g. ['FWin', 'informer', 'iTransformer', 'Spectcaster', 'DLinear']
         args.model_name = model_name
         args.output_dir = os.path.join(base_output_dir, args.model_name) # Set model-specific output dir
         if is_main_process():
