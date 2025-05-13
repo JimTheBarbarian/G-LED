@@ -28,6 +28,7 @@ from torch.utils.data import DataLoader, Dataset
 from forecasting_models.FWin import FWin
 from forecasting_models.informer import informer
 from forecasting_models.iTransformer import iTransformer
+from forecasting_models.informerMS import Model as informerMS
 from layers.embed import DataEmbedding, DataEmbedding_inverted
 from layers.FWin_attentions import FullAttention as FullFwin, ProbAttention as ProbFWin, AttentionLayerWin as AttnLayerFWin, AttentionLayerCrossWin as AttnLayerCrossFWin
 
@@ -265,6 +266,8 @@ def main():
     parser.add_argument('--dropout', type=float, default=0.1, help='Dropout rate')
     parser.add_argument('--activation', type=str, default='relu', help='Activation function')
     parser.add_argument('--output_attention', action='store_true', help='Output attention weights')
+    parser.add_argument('--scale_factor', type=int, default=4, help='Scale factor for multiscale modeling')
+    parser.add_argument('--scales', type=list, default=[4,16,64])
     # DLinear specific
     parser.add_argument('--individual', action='store_true', help='Individual channels for DLinear')
 
@@ -348,7 +351,7 @@ def main():
 
     # --- Instantiate Model ---
     base_output_dir = args.output_dir # Base output directory for saving models
-    for model_name in [ 'FWin', 'informer']:
+    for model_name in [ 'informerMS']:
         args.model_name = model_name
         args.output_dir = os.path.join(base_output_dir, args.model_name) # Set model-specific output dir
         if is_main_process():
@@ -361,6 +364,8 @@ def main():
         elif args.model_name == 'iTransformer':
             args.label_len = 32
             model = iTransformer(args).to(device)
+        elif args.model_name == 'informerMS':
+            model = informerMS(args).to(device) # Pass model_args for informerMS
         else:
             args.label_len = 31 # Set label_len for FWin
             model = FWin(seq_len=args.input_len, label_len = args.label_len, out_len=args.pred_len, enc_in=args.enc_in,dec_in=args.dec_in,c_out=args.c_out,window_size=args.window_size,attn = 'prob',num_windows=args.num_windows,d_model = args.d_model, d_ff = args.d_ff).to(device) # Placeholder signature

@@ -87,3 +87,48 @@ class DataEmbedding_inverted(nn.Module):
         x = self.value_embedding(x)
         return self.dropout(x)
     
+class PositionalEmbedding_new(nn.Module):
+    def __init__(self, d_model, max_len=5000):
+        super(PositionalEmbedding_new, self).__init__()
+        # Compute the positional encodings once in log space.
+        pe = torch.zeros(max_len, d_model).float()
+        pe.require_grad = False
+
+        position = torch.arange(0, max_len).float().unsqueeze(1)
+        div_term = (torch.arange(0, d_model, 2).float() * -(math.log(10000.0) / d_model)).exp()
+
+        pe[:, 0::2] = torch.sin(position * div_term)
+        pe[:, 1::2] = torch.cos(position * div_term)
+
+        pe = pe.unsqueeze(0)
+        self.register_buffer('pe', pe)
+
+    def forward(self, x, scale=1):
+        return self.pe[:, scale:x.size(1)*scale+1:scale]
+
+
+
+class DataEmbedding_mine(nn.Module):
+    def __init__(self, c_in, d_model, dropout=0.1, is_decoder=False):
+        super(DataEmbedding_mine, self).__init__()
+        if is_decoder:
+            c_in += 1
+        self.value_embedding = TokenEmbedding(c_in=c_in, d_model=d_model)
+        self.position_embedding = PositionalEmbedding_new(d_model=d_model)
+        #self.temporal_embedding = TimeFeatureEmbedding_new(d_model=d_model, embed_type=embed_type, freq=freq)
+        self.dropout = nn.Dropout(p=dropout)
+        self.is_decoder = is_decoder
+
+    def forward(self, x, scale, first_scale, label_len):
+        if self.is_decoder:
+            x = torch.cat((x, torch.ones((x.shape[0], x.shape[1], 1), device=x.device)), dim=2)
+            if scale==first_scale:
+                x[:,:label_len//scale,-1] = 0
+                x[:,label_len//scale:,-1] = 0.5
+            else:
+                x[:,:label_len//scale,-1] = 0
+                x[:,label_len//scale:,-1] = 1
+        vembed = self.value_embedding(x)
+        pembed = self.position_embedding(x, scale)
+        x = vembed + pembed 
+        return self.dropout(x)
