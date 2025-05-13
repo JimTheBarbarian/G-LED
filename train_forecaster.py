@@ -358,7 +358,7 @@ def main():
             os.makedirs(args.output_dir, exist_ok=True) # Create model-specific output dir if it doesn't exist
         if is_main_process(): print(f"Creating model: {args.model_name}")
         if args.model_name == 'informer':
-            args.num_epochs = 100
+            args.num_epochs = 50
             args.label_len = 32
             model = informer(args).to(device) # Pass model_args for informer
         elif args.model_name == 'iTransformer':
