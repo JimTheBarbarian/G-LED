@@ -548,12 +548,12 @@ def main():
     if is_main_process(): print("Datasets loaded.")
 
     # --- Instantiate Model ---
-    base_output_dir = args.output_dir # Base output directory for saving models
-    for model_name in ['iTransformer','Spectcaster','FWin','DLinear']: # Add other model names as needed e.g. ['FWin', 'informer', 'iTransformer', 'Spectcaster', 'DLinear']
+    base_output_dir = args.output_dir 
+    for model_name in ['iTransformer','Spectcaster','FWin','DLinear']:
         args.model_name = model_name
         args.output_dir = os.path.join(base_output_dir, args.model_name) # Set model-specific output dir
         if is_main_process():
-            os.makedirs(args.output_dir, exist_ok=True) # Create model-specific output dir if it doesn't exist
+            os.makedirs(args.output_dir, exist_ok=True) 
         if is_main_process(): print(f"Creating models: {args.model_name}")
 
         # Instantiate real model
