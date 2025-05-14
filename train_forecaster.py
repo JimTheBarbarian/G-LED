@@ -267,7 +267,7 @@ def main():
     parser.add_argument('--activation', type=str, default='relu', help='Activation function')
     parser.add_argument('--output_attention', action='store_true', help='Output attention weights')
     parser.add_argument('--scale_factor', type=int, default=2, help='Scale factor for multiscale modeling')
-    parser.add_argument('--scales', type=list, default=[1,2,4,8])
+    parser.add_argument('--scales', type=list, default=[1,2,4])
     # DLinear specific
     parser.add_argument('--individual', action='store_true', help='Individual channels for DLinear')
 
