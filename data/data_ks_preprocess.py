@@ -31,9 +31,9 @@ class bfs_dataset(Dataset):
 		if flag == 'train':
 			self.solution = self.solution[:2,:,:]
 		elif flag == 'val':
-			self.solution = self.solution[:2,:,:]
+			self.solution = self.solution[val_index:test_index]
 		elif flag == 'test':
-			self.solution = self.solution[:2,:,:]
+			self.solution = self.solution[2:4,:,:]
 		self.num_trajs = self.solution.shape[0]
 		self.n_span = self.solution.shape[1]
 		self.trajec_max_len = trajec_max_len
