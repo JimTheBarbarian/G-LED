@@ -140,4 +140,4 @@ class Model(nn.Module):
                 else:
                     dec_out_coarse = dec_out_coarse + mean
                 outputs.append(dec_out_coarse[:, -self.pred_len//scale:, :])
-        return outputs
+        return outputs[-1]
