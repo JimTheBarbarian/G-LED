@@ -260,10 +260,10 @@ def main():
     parser.add_argument('--attn', type=str, default='prob', help='Attention type (prob/full)')
     parser.add_argument('--distil', action='store_false', help='')
     # Add common transformer args (might be ignored by simpler models)
-    parser.add_argument('--d_model', type=int, default=128, help='Dimension of model')
+    parser.add_argument('--d_model', type=int, default=512, help='Dimension of model')
     parser.add_argument('--n_heads', type=int, default=8, help='Number of heads')
-    parser.add_argument('--e_layers', type=int, default=3, help='Number of encoder layers')
-    parser.add_argument('--d_layers', type=int, default=2, help='Number of decoder layers')
+    parser.add_argument('--e_layers', type=int, default=2, help='Number of encoder layers')
+    parser.add_argument('--d_layers', type=int, default=1, help='Number of decoder layers')
     parser.add_argument('--d_ff', type=int, default=256, help='Dimension of feedforward network')
     parser.add_argument('--dropout', type=float, default=0.1, help='Dropout rate')
     parser.add_argument('--activation', type=str, default='relu', help='Activation function')
@@ -275,7 +275,7 @@ def main():
 
 
     # --- Training Arguments ---
-    parser.add_argument('--num_epochs', type=int, default=300, help='Number of training epochs')
+    parser.add_argument('--num_epochs', type=int, default=100, help='Number of training epochs')
     parser.add_argument('--learning_rate', type=float, default=3e-4, help='Initial learning rate')
     parser.add_argument('--scheduler_step_size', type=int, default=10, help='StepLR step size')
     parser.add_argument('--scheduler_gamma', type=float, default=0.9, help='StepLR gamma')
