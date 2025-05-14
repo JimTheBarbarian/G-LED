@@ -122,7 +122,7 @@ class Model(nn.Module):
             #print('enc_out', enc_out.shape)
             enc_out, attns = self.encoder(enc_out)
             #print('enc_out', enc_out.shape)
-            #print('dec_out', dec_out.shape)
+            print('dec_out', dec_out.shape)
             dec_out = self.dec_embedding(dec_out,  scale=scale, first_scale=scales[0], label_len=label_len)
             dec_out_coarse = self.decoder(dec_out, enc_out, x_mask=self.mv(dec_self_mask, scale), cross_mask=self.mv(dec_enc_mask, scale))
 
