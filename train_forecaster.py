@@ -241,8 +241,8 @@ def main():
     parser.add_argument('--data_location', type=str, default=['./data/data0.npy', './data/data1.npy'], help='Path(s) to data files')
     # trajec_max_len for bfs_dataset is the length of sequence to load per sample
     parser.add_argument('--sample_len', type=int, default=385, help='Total sequence length for each sample (input_len + pred_len)')
-    parser.add_argument('--val_split', type=float, default=0.9, help='Validation split fraction')
-    parser.add_argument('--test_split', type=float, default=0.95, help='Test split fraction (relative to total)')
+    parser.add_argument('--val_split', type=float, default=0.8, help='Validation split fraction')
+    parser.add_argument('--test_split', type=float, default=0.9, help='Test split fraction (relative to total)')
     parser.add_argument('--batch_size', type=int, default=1, help='Batch size per GPU')
     parser.add_argument('--num_workers', type=int, default=4, help='Number of dataloader workers')
 
