@@ -120,8 +120,10 @@ class DataEmbedding_mine(nn.Module):
         self.is_decoder = is_decoder
 
     def forward(self, x, scale, first_scale, label_len):
+        print('x.shape', x.shape)
         if self.is_decoder:
             x = torch.cat((x, torch.ones((x.shape[0], x.shape[1], 1), device=x.device)), dim=2)
+            print('x.shape', x.shape)
             if scale==first_scale:
                 x[:,:label_len//scale,-1] = 0
                 x[:,label_len//scale:,-1] = 0.5
@@ -129,6 +131,8 @@ class DataEmbedding_mine(nn.Module):
                 x[:,:label_len//scale,-1] = 0
                 x[:,label_len//scale:,-1] = 1
         vembed = self.value_embedding(x)
+        print('vembed.shape', vembed.shape)
         pembed = self.position_embedding(x, scale)
+        print('pembed.shape', pembed.shape)
         x = vembed + pembed 
         return self.dropout(x)
