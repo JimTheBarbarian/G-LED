@@ -504,7 +504,7 @@ def main():
     parser.add_argument('--output_dir', type=str, default='./forecasting_output_ms', help='Directory to save results')
     parser.add_argument('--downsample', action='store_false', help='Use downsampling')
     parser.add_argument('--coarse_dim', type=int, default=16, help='Coarse dimension for downsampling')
-    parser.add_argument('--stride', type=int, default=125, help='Stride for downsampling')
+    parser.add_argument('--stride', type=int, default=10, help='Stride for downsampling')
     # local_rank is handled by torchrun/launch
     parser.add_argument('--seed', type=int, default=20398, help='Random seed')
 
