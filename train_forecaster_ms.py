@@ -78,7 +78,7 @@ def train_test_seq(args, model_real, train_loader, sampler_train, valid_loader, 
         #    dist.barrier()
 
     # Final Test Step (only on main process)
-    error_curve = None
+    #error_curve = None
     if is_main_process():
         print("\n--- Final Testing ---")
         # Load best model for testing
@@ -624,7 +624,7 @@ def main():
             model_imag = FWin(seq_len=args.input_len, label_len = args.label_len, out_len=args.pred_len, enc_in=args.enc_in,dec_in=args.dec_in,c_out=args.c_out,window_size=args.window_size,attn = 'prob',num_windows=args.num_windows,d_model = args.d_model, d_ff = args.d_ff).to(device)
         '''
         if args.distributed:
-            model_real = DDP(model_real, device_ids=[args.local_rank], output_device=args.local_rank, find_unused_parameters=True)
+            model_real = DDP(model_real, device_ids=[args.local_rank], output_device=args.local_rank, find_unused_parameters=False)
             #model_imag = DDP(model_imag, device_ids=[args.local_rank], output_device=args.local_rank, find_unused_parameters=False)
         if is_main_process(): print(f"Models created on device: {device}")
 
