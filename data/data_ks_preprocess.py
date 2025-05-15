@@ -41,7 +41,10 @@ class bfs_dataset(Dataset):
 		return self.num_trajs
 		
 	def __getitem__(self, index):
-		return self.solution[index]
+		time_vector = torch.linspace(0,96, self.n_span, dtype = torch.float32,device = self.solution.device)
+		time_channel_col = time_vector.unsqueeze(-1)
+		data_with_time = torch.cat([self.solution[index],time_channel_col],dim = -1)
+		return data_with_time
 		#if self.flag == 'test':
 		#	return self.solution[index,:self.start_n]
 		#else:

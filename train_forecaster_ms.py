@@ -37,7 +37,7 @@ from layers.SelfAttention_Family import ProbAttention, FullAttention, AttentionL
 from layers.Transformer_EncDec import ConvLayer, EncoderLayer, Encoder, FourierMix, DecoderLayerWithFourier, Decoder
 
 
-def train_test_seq(args, model_real,model_imag, train_loader, sampler_train, valid_loader, test_loader,optimizer_real, optimizer_imag, scheduler_real,scheduler_imag, num_epochs):
+def train_test_seq(args, model_real, train_loader, sampler_train, valid_loader, test_loader,optimizer_real, scheduler_real, num_epochs):
     best_val_mre = float('inf')
     down_sampler = torch.nn.Upsample(size=(1,16),mode='bilinear')
     for epoch in range(num_epochs):
@@ -48,28 +48,29 @@ def train_test_seq(args, model_real,model_imag, train_loader, sampler_train, val
             sampler_train.set_epoch(epoch)
 
         # Training Step
-        train_loss = train_epoch(args, model_real,model_imag, train_loader, optimizer_real,optimizer_imag, down_sampler=down_sampler, device=args.gpu) # Use args.gpu from setup
+        train_loss = train_epoch(args, model_real, train_loader, optimizer_real,down_sampler=down_sampler, device=args.gpu) # Use args.gpu from setup
         if is_main_process():
             print(f"Epoch {epoch+1} Train Loss: {train_loss:.6f}")
 
         # Validation Step (only on main process for efficiency)
         if is_main_process():
-            max_mre, min_mre, mean_mre, sigma3 = valid_epoch(args, model_real.module, model_imag.module,valid_loader, device=args.gpu, down_sampler=down_sampler) # Use model.module for validation
-            print(f'Validation - Max MRE: {max_mre:.4f}, Mean MRE: {mean_mre:.4f}, Min MRE: {min_mre:.4f}, 3 Sigma: {sigma3:.4f}')
+            avg_loss = valid_epoch(args, model_real,valid_loader,device=args.gpu, down_sampler=down_sampler) # Use model.module for validation
+            print(f"Epoch {epoch+1} Validation Loss: {avg_loss:.6f}")
+            # max_mre, min_mre, mean_mre, sigma3 = valid_epoch(args, model_real.module, model_imag.module,valid_loader, device=args.gpu, down_sampler=down_sampler) # Use model.module for validation
+            #print(f'Validation - Max MRE: {max_mre:.4f}, Mean MRE: {mean_mre:.4f}, Min MRE: {min_mre:.4f}, 3 Sigma: {sigma3:.4f}')
             print(f'Time for Epoch {epoch+1}: {time.time()-tic:.2f}s')
 
             # Save model based on validation performance
-            if mean_mre < best_val_mre:
-                best_val_mre = mean_mre
-                save_path_real = os.path.join(args.output_dir, f"{args.model_name}_real_best.pt")
-                save_path_imag = os.path.join(args.output_dir, f"{args.model_name}_imag_best.pt")
+            if avg_loss < best_val_mre:
+                best_val_mre = avg_loss
+                save_path_real = os.path.join(args.output_dir, f"{args.model_name}_{args.pred_len}_best.pt")
+                #save_path_imag = os.path.join(args.output_dir, f"{args.model_name}_imag_best.pt")
                 torch.save(model_real.module.state_dict(), save_path_real)
-                torch.save(model_imag.module.state_dict(), save_path_imag)
-                print(f"New best models saved to {save_path_real} and {save_path_imag}")
+                #torch.save(model_imag.module.state_dict(), save_path_imag)
+                print(f"New best models saved to {save_path_real} ")
 
         # Step the scheduler
         scheduler_real.step()
-        scheduler_imag.step()
 
 
         # Ensure all processes sync before next epoch
@@ -81,6 +82,33 @@ def train_test_seq(args, model_real,model_imag, train_loader, sampler_train, val
     if is_main_process():
         print("\n--- Final Testing ---")
         # Load best model for testing
+        best_model_path = os.path.join(args.output_dir, f"{args.model_name}_{args.pred_len}_best.pt")
+
+        if os.path.exists(best_model_path):
+            if args.model_name == 'informer':
+                model_instance_real = informer(args).to(args.gpu)
+            elif args.model_name == 'iTransformer':
+                model_instance_real = iTransformer(args).to(args.gpu)
+            elif args.model_name == 'Spectcaster':
+                model_instance_real = Spectcaster(args).to(args.gpu)
+            elif args.model_name == 'DLinear':
+                model_instance_real = DLinear(input_len=args.input_len, output_len=args.pred_len, individual=True, input_features=args.enc_in, output_features=args.c_out).to(args.gpu)
+            else: 
+                model_instance_real = FWin(seq_len=args.input_len, label_len=args.label_len, out_len=args.pred_len, enc_in=args.enc_in, dec_in=args.dec_in, c_out=args.c_out, window_size=args.window_size, attn='prob', num_windows=args.num_windows, d_model=args.d_model, d_ff=args.d_ff).to(args.gpu)
+            model_instance_real.load_state_dict(torch.load(best_model_path, map_location=f'cuda:{args.gpu}'))
+            model_instance_real.eval()
+
+
+        print(f"Loaded best real model from {best_model_path}  for testing.")
+            #error_curve = test_epoch(args, model_instance_real, model_instance_imag, test_loader, device=args.gpu, down_sampler=down_sampler) # Test the best single models
+        test_loss = valid_epoch(args, model_instance_real, test_loader, device=args.gpu, down_sampler=down_sampler) # Test the best single models
+        print(f"Test Error Curve (Mean Relative Error per Step): {test_loss}")
+    else:
+        print("No best real and/or imaginary model found to test.")
+
+
+
+'''
         best_model_path_real = os.path.join(args.output_dir, f"{args.model_name}_real_best.pt")
         best_model_path_imag = os.path.join(args.output_dir, f"{args.model_name}_imag_best.pt")
 
@@ -110,20 +138,11 @@ def train_test_seq(args, model_real,model_imag, train_loader, sampler_train, val
                 model_instance_imag = FWin(seq_len=args.input_len, label_len=args.label_len, out_len=args.pred_len, enc_in=args.enc_in, dec_in=args.dec_in, c_out=args.c_out, window_size=args.window_size, attn='prob', num_windows=args.num_windows, d_model=args.d_model, d_ff=args.d_ff).to(args.gpu)
             model_instance_imag.load_state_dict(torch.load(best_model_path_imag, map_location=f'cuda:{args.gpu}'))
             model_instance_imag.eval()
-
-            print(f"Loaded best real model from {best_model_path_real} and best imaginary model from {best_model_path_imag} for testing.")
-            error_curve = test_epoch(args, model_instance_real, model_instance_imag, test_loader, device=args.gpu, down_sampler=down_sampler) # Test the best single models
-            print(f"Test Error Curve (Mean Relative Error per Step): {error_curve}")
-        else:
-            print("No best real and/or imaginary model found to test.")
+            '''
 
 
-    return error_curve 
-
-
-def train_epoch(args,model_real,model_imag, train_loader, optimizer_real,optimizer_imag,device,down_sampler):
-    model_real.train()
-    model_imag.train()
+def train_epoch(args,model, train_loader, optimizer,device,down_sampler):
+    model.train()
     total_loss = 0.0
     loader_wrapper = tqdm(train_loader) if is_main_process() else train_loader
 
@@ -133,11 +152,14 @@ def train_epoch(args,model_real,model_imag, train_loader, optimizer_real,optimiz
     for batch_idx, (batch) in enumerate(loader_wrapper):
         batch = batch.to(device).float()
         if args.downsample:
-            data_spectral = torch.fft.rfft(batch-torch.mean(batch,dim = (1,2), keepdim=True),dim=-1)
-            data_spectral_real = data_spectral.real
-            data_spectral_imag = data_spectral.imag
+            batch_min = torch.min(batch)
+            batch_max = torch.max(batch)
+            normalized_batch = (batch - batch_min) / (batch_max - batch_min + 1e-8) # Normalize to [0, 1]
+            #data_spectral = torch.fft.rfft(batch-torch.mean(batch,dim = (1,2), keepdim=True),dim=-1)
+            #data_spectral_real = data_spectral.real
+            #data_spectral_imag = data_spectral.imag
             #data_coarse2fine = torch.fft.irfft(data_spectral, axis=-1,n=17)
-            #b_size = batch.shape[0]
+            b_size = batch.shape[0]
             num_time = batch.shape[1]
 		    #num_velocity = 2 # Not doing BFS equations
             #batch = batch.reshape([b_size,num_time, 1,64])
@@ -146,7 +168,26 @@ def train_epoch(args,model_real,model_imag, train_loader, optimizer_real,optimiz
 	
 			#										args.coarse_dim])
             num_predicts = (num_time - args.input_len - args.pred_len + 1) // args.stride
+
             for j in range(0,num_predicts):
+                optimizer.zero_grad()
+                start_idx = j * args.stride
+                target_start_idx = start_idx + args.input_len
+                current_input = normalized_batch[:, start_idx:start_idx + args.input_len, :]
+                ground_truth = normalized_batch[:, target_start_idx:target_start_idx + args.pred_len, :]
+                if args.decoder: 
+                    label_start_idx = args.input_len - args.label_len
+                    label = torch.cat([current_input[:, label_start_idx:args.input_len, :], torch.zeros((current_input.shape[0],args.pred_len, current_input.shape[2]),device = device)], dim=1)
+                    output = model(current_input,label)
+                    loss = F.mse_loss(output, ground_truth)
+                    loss.backward()
+                    optimizer.step()
+                    total_loss += loss.item() / ( num_predicts)
+    avg_loss = total_loss / len(train_loader)
+    return avg_loss
+
+        # below is for frequency training
+'''
                 optimizer_real.zero_grad()
                 optimizer_imag.zero_grad()
                 current_input_real = data_spectral_real[:, j:j + args.input_len, :]
@@ -167,9 +208,8 @@ def train_epoch(args,model_real,model_imag, train_loader, optimizer_real,optimiz
                 loss_imag.backward()
                 optimizer_real.step()
                 optimizer_imag.step()
+                
 
-
-        '''
         for i in range(num_pred_segments):
             
             all_predictions = []
@@ -204,20 +244,18 @@ def train_epoch(args,model_real,model_imag, train_loader, optimizer_real,optimiz
 '''
 
     # Average loss over predictions
-    avg_loss = total_loss / len(train_loader)
     # If you need the exact average loss across all GPUs:
     #if args.distributed:
     #    loss_tensor = torch.tensor(avg_loss).to(device)
     #    dist.all_reduce(loss_tensor, op=dist.ReduceOp.AVG)
     #    avg_loss = loss_tensor.item()
 
-    return avg_loss
 
 
-def valid_epoch(args, model_real, model_imag, valid_loader,device,down_sampler):
-    model_real.eval()
-    model_imag.eval()
-    batch_relative_errors= []
+def valid_epoch(args, model, valid_loader,device,down_sampler):
+    model.eval()
+    total_loss = 0.0
+    #batch_relative_errors= []
     loader_wrapper = tqdm(valid_loader) if is_main_process() else valid_loader
 
     num_pred_segments = (args.sample_len - args.input_len) // args.pred_len
@@ -226,6 +264,53 @@ def valid_epoch(args, model_real, model_imag, valid_loader,device,down_sampler):
     with torch.no_grad():
         for batch_idx, (data) in enumerate(loader_wrapper):
             data = data.to(device).float()
+
+            data_min = torch.min(data)
+            data_max = torch.max(data)
+            normalized_batch = (data - data_min) / (data_max - data_min + 1e-8) # Normalize to [0, 1]
+
+            num_time = data.shape[1]
+            num_predicts = (num_time - args.input_len - args.pred_len + 1) // args.stride
+
+            for j in range(0,num_predicts):
+                start_idx = j * args.stride
+                target_start_idx = start_idx + args.input_len
+                current_input = normalized_batch[:, start_idx:start_idx + args.input_len, :]
+                ground_truth = normalized_batch[:, target_start_idx:target_start_idx + args.pred_len, :]
+
+                if args.decoder: 
+                    label_start_idx = args.input_len - args.label_len
+                    label = torch.cat([current_input[:, label_start_idx:args.input_len, :], torch.zeros((current_input.shape[0],args.pred_len, current_input.shape[2]),device = device)], dim=1)
+                    output = model(current_input,label)
+                    loss = F.mse_loss(output, ground_truth)
+                    total_loss += loss.item() / ( num_predicts)
+                else:
+                    final_predictions_reconstructed = model(current_input)
+                    total_loss += F.mse_loss(final_predictions_reconstructed, ground_truth) / (num_pred_segments * num_predicts)
+
+        avg_loss = total_loss / len(valid_loader)
+        return avg_loss
+            #comparison_len = min(final_predictions_reconstructed.shape[1], ground_truth_spatial.shape[1])
+            #batch_mse = F.mse_loss(final_predictions_reconstructed[:, :comparison_len, :], ground_truth_spatial[:, :comparison_len, :])
+
+            #target_norm_sq = F.mse_loss(ground_truth_spatial[:, :comparison_len, :], torch.zeros_like(ground_truth_spatial[:, :comparison_len, :]))
+
+            #atch_r_er = batch_mse / target_norm_sq if target_norm_sq > 1e-9 else torch.tensor(0.0, device=device)
+            #batch_relative_errors.append(batch_r_er.item())
+
+            
+
+    #errors_np = np.array(batch_relative_errors)
+
+    #max_mre = np.max(errors_np)
+    #min_mre = np.min(errors_np)
+    #mean_mre = np.mean(errors_np)
+    #sigma3 = np.std(errors_np) * 3
+
+
+
+
+    '''
             if args.downsample:
                 data_spectral = torch.fft.rfft(data-torch.mean(data,dim = (1,2), keepdim=True),dim=-1)
                 data_spectral_real = data_spectral.real
@@ -271,23 +356,7 @@ def valid_epoch(args, model_real, model_imag, valid_loader,device,down_sampler):
 
             final_predictions_complex = torch.complex(final_predictions_real, final_predictions_imag)
             final_predictions_reconstructed = torch.fft.irfft(final_predictions_complex, n=original_spatial_dim_size, dim=-1)
-
-            comparison_len = min(final_predictions_reconstructed.shape[1], ground_truth_spatial.shape[1])
-            batch_mse = F.mse_loss(final_predictions_reconstructed[:, :comparison_len, :], ground_truth_spatial[:, :comparison_len, :])
-
-            target_norm_sq = F.mse_loss(ground_truth_spatial[:, :comparison_len, :], torch.zeros_like(ground_truth_spatial[:, :comparison_len, :]))
-
-            batch_r_er = batch_mse / target_norm_sq if target_norm_sq > 1e-9 else torch.tensor(0.0, device=device)
-            batch_relative_errors.append(batch_r_er.item())
-
-            
-
-    errors_np = np.array(batch_relative_errors)
-
-    max_mre = np.max(errors_np)
-    min_mre = np.min(errors_np)
-    mean_mre = np.mean(errors_np)
-    sigma3 = np.std(errors_np) * 3
+            '''
 
     return max_mre, min_mre, mean_mre, sigma3
 
@@ -384,44 +453,7 @@ def test_epoch(args, model_real, model_imag, test_loader,device,down_sampler):
     mean_relative_errors_per_step_np = mean_relative_errors_per_step.cpu().numpy()
     return mean_relative_errors_per_step_np
 
-# Helper function to create model instance (avoids code duplication)
-def create_model(args, device):
-    # Generic arguments dictionary (adjust based on actual model signatures)
-    model_args = {
-        'seq_len': args.input_len,
-        'pred_len': args.pred_len,
-        'label_len': args.label_len,
-        'enc_in': args.enc_in,
-        'dec_in': args.dec_in,
-        'c_out': args.c_out,
-        'd_model': args.d_model,
-        'n_heads': args.n_heads,
-        'e_layers': args.e_layers,
-        'd_layers': args.d_layers,
-        'd_ff': args.d_ff,
-        'dropout': args.dropout,
-        'activation': args.activation,
-        'output_attention': False, # Typically not needed
-        'device': device # Pass device if models expect it
-    }
-    # Filter args based on model type if necessary (e.g., DLinear doesn't need d_model)
-    if args.model_name == 'FWin':
-         # Assuming FWin has a specific signature
-         # Ensure forecasting_models.FWin.Model exists and check its signature
-         model = FWin(seq_len=args.input_len, label_len = args.label_len, out_len=args.pred_len, enc_in=args.enc_in,dec_in=args.dec_in,c_out=args.c_out).to(device) # Placeholder signature
-    elif args.model_name == 'informer':
-        # Informer likely uses many of the transformer args
-        # Ensure forecasting_models.informer.Model exists and check its signature
-        # You might need to filter model_args to only pass expected arguments
-        model = informer(**model_args).to(device)
-    elif args.model_name == 'iTransformer':
-        # iTransformer likely uses many of the transformer args
-        # Ensure forecasting_models.iTransformer.Model exists and check its signature
-        # You might need to filter model_args to only pass expected arguments
-        model = iTransformer.Model(**model_args).to(device)
-    else:
-        raise ValueError(f"Unknown model name: {args.model_name}")
-    return model
+
 
 def main():
     parser = argparse.ArgumentParser(description='Train Forecasting Models on KS Data with DDP')
@@ -430,19 +462,19 @@ def main():
     parser.add_argument('--data_location', type=str, default=['./data/data0.npy', './data/data1.npy'], help='Path(s) to data files')
     # trajec_max_len for bfs_dataset is the length of sequence to load per sample
     parser.add_argument('--sample_len', type=int, default=385, help='Total sequence length for each sample (input_len + pred_len)')
-    parser.add_argument('--val_split', type=float, default=0.6, help='Validation split fraction')
-    parser.add_argument('--test_split', type=float, default=0.8, help='Test split fraction (relative to total)')
+    parser.add_argument('--val_split', type=float, default=0.9, help='Validation split fraction')
+    parser.add_argument('--test_split', type=float, default=0.95, help='Test split fraction (relative to total)')
     parser.add_argument('--batch_size', type=int, default=16, help='Batch size per GPU')
     parser.add_argument('--num_workers', type=int, default=4, help='Number of dataloader workers')
 
     # --- Model Arguments ---
     parser.add_argument('--model_name', type=str, help='Name of the forecasting model')
     parser.add_argument('--input_len', type=int, default=64, help='Input sequence length')
-    parser.add_argument('--pred_len', type=int, default=64, help='Prediction sequence length')
+    parser.add_argument('--pred_len', type=int, default=16, help='Prediction sequence length')
     parser.add_argument('--label_len', type=int, default=32, help='Label length for decoder input (overlap with input)')
-    parser.add_argument('--enc_in', type=int, default=33, help='Encoder input size (spatial dimension)') # Assuming 64 based on other files
-    parser.add_argument('--dec_in', type=int, default=33, help='Decoder input size (spatial dimension)')
-    parser.add_argument('--c_out', type=int, default=33, help='Output size (spatial dimension)')
+    parser.add_argument('--enc_in', type=int, default=65, help='Encoder input size (spatial dimension)') # Assuming 64 based on other files
+    parser.add_argument('--dec_in', type=int, default=65, help='Decoder input size (spatial dimension)')
+    parser.add_argument('--c_out', type=int, default=65, help='Output size (spatial dimension)')
     parser.add_argument('--factor', type=int, default=5, help='')
     parser.add_argument('--window_size', type=int, default=16, help='')
     parser.add_argument('--num_windows', type=int, default=2, help='')
@@ -451,7 +483,7 @@ def main():
     parser.add_argument('--patch_len', type = int, default=16, help='')
     parser.add_argument('--depth', type = int, default=3, help='')
     # Add common transformer args (might be ignored by simpler models)
-    parser.add_argument('--d_model', type=int, default=128, help='Dimension of model')
+    parser.add_argument('--d_model', type=int, default=256, help='Dimension of model')
     parser.add_argument('--n_heads', type=int, default=8, help='Number of heads')
     parser.add_argument('--e_layers', type=int, default=3, help='Number of encoder layers')
     parser.add_argument('--d_layers', type=int, default=2, help='Number of decoder layers')
@@ -576,7 +608,7 @@ def main():
             args.label_len = 32 
             args.num_epochs = 10
             model_real = FWin(seq_len=args.input_len, label_len = args.label_len, out_len=args.pred_len, enc_in=args.enc_in,dec_in=args.dec_in,c_out=args.c_out,window_size=args.window_size,attn = 'prob',num_windows=args.num_windows,d_model = args.d_model, d_ff = args.d_ff).to(device)
-
+        '''
         # Instantiate imaginary model
         if args.model_name == 'informer':
             model_imag = informer(args).to(device)
@@ -590,18 +622,18 @@ def main():
             model_imag = model_imag.to(device)
         else: # FWin as default
             model_imag = FWin(seq_len=args.input_len, label_len = args.label_len, out_len=args.pred_len, enc_in=args.enc_in,dec_in=args.dec_in,c_out=args.c_out,window_size=args.window_size,attn = 'prob',num_windows=args.num_windows,d_model = args.d_model, d_ff = args.d_ff).to(device)
-
+        '''
         if args.distributed:
             model_real = DDP(model_real, device_ids=[args.local_rank], output_device=args.local_rank, find_unused_parameters=False)
-            model_imag = DDP(model_imag, device_ids=[args.local_rank], output_device=args.local_rank, find_unused_parameters=False)
+            #model_imag = DDP(model_imag, device_ids=[args.local_rank], output_device=args.local_rank, find_unused_parameters=False)
         if is_main_process(): print(f"Models created on device: {device}")
 
 
         # --- Optimizer and Scheduler ---
         optimizer_real = optim.Adam(model_real.parameters(), lr=args.learning_rate)
         scheduler_real = optim.lr_scheduler.StepLR(optimizer_real, step_size=args.scheduler_step_size, gamma=args.scheduler_gamma)
-        optimizer_imag = optim.Adam(model_imag.parameters(), lr=args.learning_rate)
-        scheduler_imag = optim.lr_scheduler.StepLR(optimizer_imag, step_size=args.scheduler_step_size, gamma=args.scheduler_gamma)
+        #optimizer_imag = optim.Adam(model_imag.parameters(), lr=args.learning_rate)
+        #scheduler_imag = optim.lr_scheduler.StepLR(optimizer_imag, step_size=args.scheduler_step_size, gamma=args.scheduler_gamma)
 
         # --- Run Training ---
         if is_main_process():
@@ -610,15 +642,15 @@ def main():
         error_curve = train_test_seq(
             args=args,
             model_real=model_real, 
-            model_imag=model_imag,
+            #model_imag=model_imag,
             train_loader=train_loader,
             sampler_train=train_sampler,
             valid_loader=valid_loader,
             test_loader=test_loader,
             optimizer_real=optimizer_real,
-            optimizer_imag=optimizer_imag,
+            #optimizer_imag=optimizer_imag,
             scheduler_real=scheduler_real,
-            scheduler_imag=scheduler_imag,
+            #scheduler_imag=scheduler_imag,
             num_epochs=args.num_epochs
         )
 
@@ -631,6 +663,7 @@ def main():
         # print(f"Final epoch model saved to {model_save_path}")
 
         # Save error curve if generated
+        '''
             if error_curve is not None:
                 plt.figure(figsize=(10, 6))
                 t_values = np.arange(0, len(error_curve)) # Time step indices
@@ -654,6 +687,8 @@ def main():
                 plt.savefig(plot_path)
                 plt.close() # Close the plot to free memory
                 print(f"Test error plot saved to {plot_path}")
+
+        '''
     # --- Cleanup ---
     if args.distributed:
         dist.destroy_process_group()
