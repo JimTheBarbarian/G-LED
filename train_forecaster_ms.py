@@ -53,29 +53,29 @@ def train_test_seq(args, model_real, train_loader, sampler_train, valid_loader, 
             print(f"Epoch {epoch+1} Train Loss: {train_loss:.6f}")
 
         # Validation Step (only on main process for efficiency)
-        if is_main_process():
-            avg_loss = valid_epoch(args, model_real,valid_loader,device=args.gpu, down_sampler=down_sampler) # Use model.module for validation
-            print(f"Epoch {epoch+1} Validation Loss: {avg_loss:.6f}")
+        #if is_main_process():
+        avg_loss = valid_epoch(args, model_real,valid_loader,device=args.gpu, down_sampler=down_sampler) # Use model.module for validation
+        print(f"Epoch {epoch+1} Validation Loss: {avg_loss:.6f}")
             # max_mre, min_mre, mean_mre, sigma3 = valid_epoch(args, model_real.module, model_imag.module,valid_loader, device=args.gpu, down_sampler=down_sampler) # Use model.module for validation
             #print(f'Validation - Max MRE: {max_mre:.4f}, Mean MRE: {mean_mre:.4f}, Min MRE: {min_mre:.4f}, 3 Sigma: {sigma3:.4f}')
-            print(f'Time for Epoch {epoch+1}: {time.time()-tic:.2f}s')
+        print(f'Time for Epoch {epoch+1}: {time.time()-tic:.2f}s')
 
             # Save model based on validation performance
-            if avg_loss < best_val_mre:
-                best_val_mre = avg_loss
-                save_path_real = os.path.join(args.output_dir, f"{args.model_name}_{args.pred_len}_best.pt")
-                #save_path_imag = os.path.join(args.output_dir, f"{args.model_name}_imag_best.pt")
-                torch.save(model_real.module.state_dict(), save_path_real)
+        if avg_loss < best_val_mre:
+            best_val_mre = avg_loss
+            save_path_real = os.path.join(args.output_dir, f"{args.model_name}_{args.pred_len}_best.pt")
+            #save_path_imag = os.path.join(args.output_dir, f"{args.model_name}_imag_best.pt")
+            torch.save(model_real.module.state_dict(), save_path_real)
                 #torch.save(model_imag.module.state_dict(), save_path_imag)
-                print(f"New best models saved to {save_path_real} ")
+            print(f"New best models saved to {save_path_real} ")
 
         # Step the scheduler
         scheduler_real.step()
 
 
         # Ensure all processes sync before next epoch
-        if args.distributed:
-            dist.barrier()
+        #if args.distributed:
+        #    dist.barrier()
 
     # Final Test Step (only on main process)
     error_curve = None
