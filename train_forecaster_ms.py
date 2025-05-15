@@ -581,7 +581,7 @@ def main():
 
     # --- Instantiate Model ---
     base_output_dir = args.output_dir 
-    for model_name in ['iTransformer','Spectcaster','FWin','DLinear']:
+    for model_name in ['Spectcaster','FWin','DLinear']:
         args.model_name = model_name
         args.output_dir = os.path.join(base_output_dir, args.model_name) # Set model-specific output dir
         if is_main_process():
