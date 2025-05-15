@@ -504,7 +504,7 @@ def main():
     parser.add_argument('--output_dir', type=str, default='./forecasting_output_ms', help='Directory to save results')
     parser.add_argument('--downsample', action='store_false', help='Use downsampling')
     parser.add_argument('--coarse_dim', type=int, default=16, help='Coarse dimension for downsampling')
-    parser.add_argument('--stride', type=int, default=5, help='Stride for downsampling')
+    parser.add_argument('--stride', type=int, default=25, help='Stride for downsampling')
     # local_rank is handled by torchrun/launch
     parser.add_argument('--seed', type=int, default=20398, help='Random seed')
 
@@ -624,7 +624,7 @@ def main():
             model_imag = FWin(seq_len=args.input_len, label_len = args.label_len, out_len=args.pred_len, enc_in=args.enc_in,dec_in=args.dec_in,c_out=args.c_out,window_size=args.window_size,attn = 'prob',num_windows=args.num_windows,d_model = args.d_model, d_ff = args.d_ff).to(device)
         '''
         if args.distributed:
-            model_real = DDP(model_real, device_ids=[args.local_rank], output_device=args.local_rank, find_unused_parameters=False)
+            model_real = DDP(model_real, device_ids=[args.local_rank], output_device=args.local_rank, find_unused_parameters=True)
             #model_imag = DDP(model_imag, device_ids=[args.local_rank], output_device=args.local_rank, find_unused_parameters=False)
         if is_main_process(): print(f"Models created on device: {device}")
 
