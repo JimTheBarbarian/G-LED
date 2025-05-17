@@ -99,7 +99,7 @@ def train_epoch(args,
 				):
 	model.train()
 	for iteration, batch in tqdm(enumerate(data_loader), disable=not is_main_process()):
-		batch = batch.to(device).float()
+		batch = batch[:,:,:64].to(device).float()
 		#batch = batch.float()
 		b_size = batch.shape[0]
 		num_time = batch.shape[1]
