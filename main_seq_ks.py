@@ -74,10 +74,10 @@ class Args:
                                  default = 384,
                                  help='number steps transformer can look back at')
         self.parser.add_argument("--n_embd", 
-                                 default =16,
+                                 default =256,
                                  help='The hidden state dim transformer to predict') 
         self.parser.add_argument("--n_head", 
-                                 default = 4,
+                                 default = 8,
                                  help='number of head per layer')
         self.parser.add_argument("--embd_pdrop",
                                  default = 0.0,
@@ -109,7 +109,7 @@ class Args:
                                  default=1,
                                  help='The change length of forward propgatate')
         self.parser.add_argument("--batch_size",
-                                 default=32, #max 16->0.047
+                                 default=16, #max 16->0.047
                                  help = 'how many seqs you want to train together per bp')
         self.parser.add_argument("--batch_size_valid",
                                  default=32, #max 16->0.047
@@ -120,7 +120,7 @@ class Args:
         #self.parser.add_argument("--device",
         #                         default='cuda:1')
         self.parser.add_argument("--epoch_num", 
-                                 default = 4000,
+                                 default = 200,
                                  help='epoch_num')
         self.parser.add_argument("--learning_rate", 
                                  default = 3e-5,
