@@ -581,7 +581,7 @@ def main():
 
     # --- Instantiate Model ---
     base_output_dir = args.output_dir 
-    for model_name in ['iTransformer','Spectcaster','FWin','DLinear']:
+    for model_name in ['FWin']:
         args.model_name = model_name
         args.output_dir = os.path.join(base_output_dir, args.model_name) # Set model-specific output dir
         if is_main_process():
@@ -606,7 +606,7 @@ def main():
             model_real = model_real.to(device)
         else: # FWin as default
             args.label_len = 32 
-            args.num_epochs = 10
+            args.num_epochs = 20
             model_real = FWin(seq_len=args.input_len, label_len = args.label_len, out_len=args.pred_len, enc_in=args.enc_in,dec_in=args.dec_in,c_out=args.c_out,window_size=args.window_size,attn = 'prob',num_windows=args.num_windows,d_model = args.d_model, d_ff = args.d_ff).to(device)
         '''
         # Instantiate imaginary model
