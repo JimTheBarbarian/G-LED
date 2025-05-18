@@ -74,7 +74,7 @@ class Args:
                                  default = 384,
                                  help='number steps transformer can look back at')
         self.parser.add_argument("--n_embd", 
-                                 default =65,
+                                 default =64,
                                  help='The hidden state dim transformer to predict') 
         self.parser.add_argument("--n_head", 
                                  default = 8,
