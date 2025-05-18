@@ -99,7 +99,7 @@ def train_epoch(args,
 				):
 	model.train()
 	for iteration, batch in tqdm(enumerate(data_loader), disable=not is_main_process()):
-		batch = batch.to(device).float()
+		batch = batch[:,:,:64].to(device).float()
 		batch_min = torch.min(batch)
 		batch_max = torch.max(batch)
 		normalized_batch = (batch - batch_min) / (batch_max - batch_min + 1e-8) # Normalize to [0, 1]

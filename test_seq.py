@@ -65,7 +65,7 @@ def test_epoch(args,
 			else:
 				if iteration>ite_thold:
 					break
-			batch = batch.to(device).float()
+			batch = batch[:,:,:64].to(device).float()
 			batch_min = torch.min(batch)
 			batch_max = torch.max(batch)
 			normalized_batch = (batch - batch_min) / (batch_max - batch_min + 1e-8) # Normalize to [0, 1]
