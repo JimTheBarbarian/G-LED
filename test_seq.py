@@ -66,21 +66,25 @@ def test_epoch(args,
 				if iteration>ite_thold:
 					break
 			batch = batch.to(device).float()
+			batch_min = torch.min(batch)
+			batch_max = torch.max(batch)
+			normalized_batch = (batch - batch_min) / (batch_max - batch_min + 1e-8) # Normalize to [0, 1]
+
 			#print(batch.shape)
 			#batch = batch.float()
 			b_size = batch.shape[0]
 			num_time_total = batch.shape[1]
 			#num_velocity = 2 not doing BFS
-			batch = batch.reshape([b_size,num_time_total, 1,64])
-			batch_coarse = down_sampler(batch).reshape([b_size, 
-														num_time_total, 
-														args.coarse_dim])
-			batch_coarse_flatten = batch_coarse.reshape([b_size, 
-														 num_time_total,
-														 args.coarse_dim])
+			#batch = batch.reshape([b_size,num_time_total, 1,64])
+			#batch_coarse = down_sampler(batch).reshape([b_size, 
+			#											num_time_total, 
+			#											args.coarse_dim])
+			#batch_coarse_flatten = batch_coarse.reshape([b_size, 
+			#											 num_time_total,
+			#											 args.coarse_dim])
 			
 
-			warm_start_coarse = batch_coarse_flatten[:,:warm_start_len,:]
+			warm_start_coarse = normalized_batch[:,:warm_start_len,:]
 			past = None
 			xn = warm_start_coarse[:,0:1,:]
 			previous_len = warm_start_len
@@ -108,9 +112,9 @@ def test_epoch(args,
 			local_batch_size = mem.shape[0]
 			for i in tqdm(range(local_batch_size)):
 				er = loss_func(mem[i:i+1],
-							   batch_coarse_flatten[i:i+1,previous_len:previous_len+Nt,:])
+							   normalized_batch[i:i+1,previous_len:previous_len+Nt,:])
 				r_er = er/loss_func(mem[i:i+1]*0,
-									batch_coarse_flatten[i:i+1,previous_len:previous_len+Nt,:])
+									normalized_batch[i:i+1,previous_len:previous_len+Nt,:])
 				REs.append(r_er.item())
 
 			# Calculate loss for the local batch
