@@ -99,26 +99,30 @@ def train_epoch(args,
 				):
 	model.train()
 	for iteration, batch in tqdm(enumerate(data_loader), disable=not is_main_process()):
-		batch = batch[:,:,:64].to(device).float()
+		batch = batch.to(device).float()
+		batch_min = torch.min(batch)
+		batch_max = torch.max(batch)
+		normalized_batch = (batch - batch_min) / (batch_max - batch_min + 1e-8) # Normalize to [0, 1]
+
 		#batch = batch.float()
 		b_size = batch.shape[0]
 		num_time = batch.shape[1]
 		#num_velocity = 2 # Not doing BFS equations
-		batch = batch.reshape([b_size,num_time, 1,64])
-		batch_coarse = down_sampler(batch).reshape([b_size, 
-													num_time, 
+		##batch = batch.reshape([b_size,num_time, 1,64])
+		#batch_coarse = down_sampler(batch).reshape([b_size, 
+		#											num_time, 
 	
-													args.coarse_dim])
-		batch_coarse_flatten = batch_coarse.reshape([b_size, 
-													 num_time,
-													 args.coarse_dim])
+		#											args.coarse_dim])
+		#batch_coarse_flatten = batch_coarse.reshape([b_size, 
+		#											 num_time,
+		#											 args.coarse_dim])
 		assert num_time == args.n_ctx + 1
 		for j in (range(num_time - args.n_ctx)):
 			model.train()
 			optimizer.zero_grad()
-			xn = batch_coarse_flatten[:,j:j+args.n_ctx,:]
+			xn = normalized_batch[:,j:j+args.n_ctx,:]
 			xnp1,_,_,_=model(inputs_embeds = xn, past=None)
-			xn_label = batch_coarse_flatten[:,j+1:j+1+args.n_ctx,:]
+			xn_label = normalized_batch[:,j+1:j+1+args.n_ctx,:]
 			loss = loss_func(xnp1, xn_label)
 			loss.backward()
 			optimizer.step()
