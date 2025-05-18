@@ -35,7 +35,7 @@ def train_seq_shift(args,
 
 			if is_main_process():
 				print('Start epoch '+ str(epoch)+' at Nt ', Nt)
-				if epoch % 100 == 0:
+				if epoch % 1 == 0:
 				
 					max_mre,min_mre, mean_mre, sigma3 = test_epoch(args=args,
 														   model=model, 
